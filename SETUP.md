@@ -70,7 +70,7 @@ Dann **Commit changes**. (Alternativ: schick mir die Werte, dann trage ich sie e
 Im Repository: **Settings → Pages → Build and deployment → Source: „GitHub Actions"**.
 Nach 1–2 Minuten ist die App online unter:
 
-**https://konst454.github.io/familien-rezepte/**
+**https://konst454.github.io/familien-rezepte-/**
 
 Jede Änderung an `main` wird automatisch neu veröffentlicht.
 
