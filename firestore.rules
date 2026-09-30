@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Nur Familienmitglieder dürfen lesen und schreiben.
+// Trage unten die E-Mail-Adressen ein (klein geschrieben), mit denen ihr euch anmeldet.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isFamily() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in [
+          'erste.person@example.com',
+          'zweite.person@example.com'
+        ];
+    }
+
+    match /families/{family}/{coll}/{docId} {
+      allow read, write: if isFamily() && coll in ['recipes', 'shopping', 'plan'];
+    }
+  }
+}
