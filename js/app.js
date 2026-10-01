@@ -1,6 +1,7 @@
 // App-Kern: Daten abonnieren, Seiten zeichnen, Klicks verteilen, Timer ticken lassen.
 import { createStore } from './store.js';
 import { applyTheme } from './theme.js';
+import { applyMotion, flush, queue, queueFromElement, motionScale } from './lib/motion.js';
 import * as T from './timers.js';
 import { esc, formatTime } from './lib/format.js';
 import { icon } from './lib/icons.js';
@@ -14,10 +15,11 @@ import * as shopping from './views/shopping.js';
 import * as account from './views/account.js';
 import * as login from './views/login.js';
 import * as wishes from './views/wishes.js';
+import * as lab from './views/lab.js';
 
 const ROUTES = {
   '': library, rezepte: library, rezept: recipe, neu: editor, bearbeiten: editor,
-  kochen: cook, timer: timers, plan: planner, liste: shopping, konto: account, wuensche: wishes
+  kochen: cook, timer: timers, plan: planner, liste: shopping, konto: account, wuensche: wishes, labor: lab
 };
 
 const root = document.getElementById('app');
@@ -56,6 +58,8 @@ const ctx = {
   rerender: () => render(),
   toast,
   T,
+  // Wirkung nach einer Aktion, z. B. ctx.fx('[data-act="tick"][data-i="2"] .box', 'pop') (siehe lib/motion.js).
+  fx: (selector, name) => queue(selector, name),
   // Schreiben ohne zu warten: die Anzeige aktualisiert sich sofort aus dem lokalen Zwischenspeicher.
   save(promise) {
     Promise.resolve(promise).catch((e) => {
@@ -112,6 +116,21 @@ function miniTimer(view) {
   return `<a class="mini-timer ${view.tabs === false ? 'no-tabs' : ''} ${t.done ? 'ringing' : ''}" href="#/timer">${icon('clock', 18)}<span style="max-width:170px;overflow:hidden;text-overflow:ellipsis">${esc(t.label)}</span>${t.running || t.done ? '' : '<span>(Pause)</span>'}<span data-tleft="${t.id}">${t.done ? 'fertig' : formatTime(t.left)}</span>${more}</a>`;
 }
 
+// Seiten-Eintritt: #app bekommt .is-entering nur nach einem Seitenwechsel. Kommt in dieser Zeit ein
+// weiteres Neuzeichnen (Daten aus Firestore, Tippen), läuft die Animation weiter (--enter-skip), statt neu zu starten.
+const ENTER_WINDOW = 1000;
+let enterAt = 0;
+
+function enterState(changed, view) {
+  const now = Date.now();
+  if (changed) enterAt = view ? now : 0;
+  const since = now - enterAt;
+  const on = enterAt > 0 && since < ENTER_WINDOW * Math.max(1, motionScale());
+  root.classList.toggle('is-entering', on);
+  if (on && since > 0) root.style.setProperty('--enter-skip', `-${since}ms`);
+  else root.style.removeProperty('--enter-skip');
+}
+
 function render() {
   ctx.route = parseRoute();
   let view = null;
@@ -137,9 +156,11 @@ function render() {
     if (view.tabs !== false) html += tabbar(view.id);
     html += miniTimer(view);
   }
+  enterState(changed, view);
   root.innerHTML = html;
   if (snap) restore(snap); else window.scrollTo(0, 0);
   if (view && view.after) view.after(ctx);
+  flush(root);
 }
 
 // ---- Ereignisse (ein Handler für alles) ----
@@ -154,7 +175,16 @@ function handler(kind) {
     fn(ctx, el, ev);
   };
 }
-root.addEventListener('click', (ev) => { T.unlockAudio(); handler('act')(ev); });
+root.addEventListener('click', (ev) => {
+  T.unlockAudio();
+  // data-fx="pop" bzw. "pop:.box": Wirkung vormerken; sie greift nach dem Neuzeichnen (oder sofort).
+  const fx = ev.target.closest('[data-fx]');
+  if (fx && root.contains(fx)) queueFromElement(fx);
+  handler('act')(ev);
+  if (fx) flush(root);
+});
+// iOS (Home-Bildschirm-App): :active greift nur, wenn es irgendwo einen touchstart-Listener gibt.
+document.addEventListener('touchstart', () => {}, { passive: true });
 root.addEventListener('input', handler('input'));
 root.addEventListener('change', handler('change'));
 root.addEventListener('submit', handler('submit'));
@@ -214,6 +244,7 @@ setInterval(() => {
 // ---- Start ----
 async function start() {
   applyTheme();
+  applyMotion();
   render();
   try {
     state.store = await createStore();

@@ -10,6 +10,7 @@ Kurzfassung der Regeln:
 - Speichern über `ctx.save(ctx.store.…)`; Demo-Modus (`store-local.js`) muss alles mitkönnen.
 - Design über Tokens in `css/app.css` (`:root`), Thema „Tomato & Basil", 2px-Konturen, Pillen, Sticker, Touch-Ziele ≥ 44 px.
 - Hell/Dunkel: Text auf Farbflächen `var(--on-color)`, auf `--bg`/`--card` `var(--ink)`. Dunkel-Tokens stehen zweimal in `css/app.css` und müssen gleich bleiben. Neue Ansichten in beiden Modi prüfen.
+- Animationen nur mit den Bewegungs-Tokens (`--t-*`, `--ease-*`, `--move`) und über `.is-entering`, `ctx.fx`/`data-fx` oder `changed()` aus `js/lib/motion.js` (render ersetzt das ganze HTML). Nie `transform` animieren, sondern `scale`/`translate`/`rotate`.
 - Nach Änderungen an App-Dateien `VERSION` in `sw.js` hochzählen; neue Dateien in `FILES` eintragen.
 - Neue Firestore-Sammlung ⇒ `firestore.rules` anpassen und Nutzer bitten, die Regeln in der Firebase-Konsole zu veröffentlichen. Echte E-Mails nie ins Repo.
 - Lokal testen: `python3 -m http.server 8000` (Demo-Modus). Push auf `main` veröffentlicht automatisch auf GitHub Pages.

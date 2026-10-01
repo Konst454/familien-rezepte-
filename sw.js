@@ -1,14 +1,14 @@
 // Service Worker: hält die App-Dateien offline bereit.
 // Beim Ändern von Dateien VERSION erhöhen, damit alle Geräte die neue Version laden.
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE = 'creative-recipes-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/store.js', 'js/store-local.js', 'js/store-firebase.js', 'js/firebase-config.js',
   'js/timers.js', 'js/examples.js', 'js/theme.js',
-  'js/lib/format.js', 'js/lib/parse.js', 'js/lib/aisles.js', 'js/lib/symbols.js', 'js/lib/icons.js', 'js/lib/shop.js', 'js/lib/family.js', 'js/lib/photo.js',
+  'js/lib/format.js', 'js/lib/parse.js', 'js/lib/aisles.js', 'js/lib/symbols.js', 'js/lib/icons.js', 'js/lib/shop.js', 'js/lib/family.js', 'js/lib/photo.js', 'js/lib/motion.js',
   'js/views/library.js', 'js/views/recipe.js', 'js/views/editor.js', 'js/views/cook.js', 'js/views/timers.js',
-  'js/views/planner.js', 'js/views/shopping.js', 'js/views/account.js', 'js/views/login.js', 'js/views/wishes.js',
+  'js/views/planner.js', 'js/views/shopping.js', 'js/views/account.js', 'js/views/login.js', 'js/views/wishes.js', 'js/views/lab.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'
 ];
 

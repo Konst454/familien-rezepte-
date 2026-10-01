@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Rezepte">
-  <!-- Darstellung sofort setzen (vor dem Stylesheet), damit nichts hell aufblitzt. Logik: js/theme.js -->
+  <!-- Darstellung und Zeitlupe sofort setzen (vor dem Stylesheet), damit nichts hell aufblitzt. Logik: js/theme.js, js/lib/motion.js -->
   <script>
     (function () {
       try {
@@ -20,6 +20,7 @@
         var dark = t === 'dark' || (t !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
         var m = document.querySelector('meta[name="theme-color"]');
         if (m) m.setAttribute('content', dark ? '#111214' : '#FFF6EC');
+        if (localStorage.getItem('cr-motion') === 'slow') document.documentElement.setAttribute('data-motion', 'slow');
       } catch (e) {}
     })();
   </script>

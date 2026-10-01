@@ -2,6 +2,7 @@
 import { esc } from '../lib/format.js';
 import { icon } from '../lib/icons.js';
 import { getTheme, setTheme } from '../theme.js';
+import { getMotion, setMotion } from '../lib/motion.js';
 import { familyMembers, saveFamily, MAX_MEMBERS, MAX_NAME } from '../lib/family.js';
 
 export const id = 'account';
@@ -53,6 +54,13 @@ export function render(ctx) {
       </div>
       <p class="hint" style="margin:0">Gilt nur für dieses Gerät. „Automatisch" folgt der Einstellung des Handys.</p>
     </section>
+    <section class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px" aria-labelledby="motion-h">
+      <h2 class="h3" id="motion-h">Bewegung</h2>
+      <div class="seg" role="group" aria-label="Bewegung" style="align-self:flex-start">
+        ${[['normal', 'Normal'], ['slow', 'Zeitlupe']].map(([m, l]) => `<button type="button" style="height:44px;padding:0 16px" data-act="motion" data-mode="${m}" aria-pressed="${getMotion() === m}">${l}</button>`).join('')}
+      </div>
+      <p class="hint" style="margin:0">Zeitlupe macht Animationen 4× langsamer, damit man Details sieht. Gilt nur für dieses Gerät.</p>
+    </section>
     ${standalone ? '' : `<div class="note-card" style="transform:none"><h2 class="h3">Als App auf den Home-Bildschirm</h2>
       <p><b>iPhone/iPad (Safari):</b> unten auf Teilen ${icon('share', 16)} tippen, dann „Zum Home-Bildschirm".<br><b>Android (Chrome):</b> Menü ⋮ oben rechts, dann „App installieren" oder „Zum Startbildschirm hinzufügen".</p></div>`}
     <div style="display:flex;flex-direction:column;gap:10px">
@@ -60,7 +68,7 @@ export function render(ctx) {
       <a class="btn block" href="#/timer">${icon('clock', 18)}Timer</a>
       ${demo ? '<button type="button" class="btn block" data-act="reset">Demo zurücksetzen</button>' : `<button type="button" class="btn block" data-act="logout">${icon('logout', 18)}Abmelden</button>`}
     </div>
-    <p class="hint" style="margin:0">Creative Recipes · Familien-Version 1.0</p>
+    <p class="hint" style="margin:0" data-act="versionTap">Creative Recipes · Familien-Version 1.0</p>
   </main>`;
 }
 
@@ -85,6 +93,14 @@ export const actions = {
     ctx.toast(`${name} entfernt`, { action: { label: 'Rückgängig', fn: () => saveFamily(ctx, familyMembers(ctx).some((n) => n === name) ? familyMembers(ctx) : [...familyMembers(ctx), name]) } });
   },
   theme(ctx, el) { setTheme(el.dataset.mode); },
+  motion(ctx, el) { setMotion(el.dataset.mode); ctx.rerender(); },
+  // Versteckt: 5× schnell auf die Versionszeile tippen öffnet das Animations-Labor.
+  versionTap(ctx) {
+    const now = Date.now();
+    const v = ctx.ui.versionTaps && now - ctx.ui.versionTaps.at < 2500 ? ctx.ui.versionTaps : { n: 0 };
+    ctx.ui.versionTaps = { n: v.n + 1, at: now };
+    if (ctx.ui.versionTaps.n >= 5) { ctx.ui.versionTaps = null; ctx.go('#/labor'); }
+  },
   async logout(ctx) { await ctx.store.signOut(); ctx.go('#/rezepte'); },
   reset(ctx) {
     if (!ctx.ui.confirmReset) { ctx.ui.confirmReset = true; ctx.toast('Nochmal tippen, um alle Demo-Daten zu löschen'); setTimeout(() => { ctx.ui.confirmReset = false; }, 4000); return; }

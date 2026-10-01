@@ -38,7 +38,8 @@ Navigation per Hash-Route. Untere Tab-Leiste: **Rezepte · Plan · Liste** + rot
 | `#/plan` (`?add=:id`, `?wish=:id`) | `js/views/planner.js` | Jeder Eintrag hat **„Wer kocht?"** (Auswahl-Blatt mit Familienliste und „Niemand festgelegt"; danach Sticker „kocht: Name"). Woche (Mo–So) mit Punkten für geplante Tage, Wochen blättern; je Tag **Frühstück/Mittag/Abend**: Rezept wählen (Auswahl-Blatt mit Suche) oder Notiz; entfernen; **Füllen** (freie Abende automatisch, Favoriten zuerst, mit „Rückgängig"); **Woche auf die Einkaufsliste**. Mit `?add=:id`: Banner, Tipp auf einen Platz plant das Rezept ein. |
 | `#/liste` | `js/views/shopping.js` | „N offen"; Eingabe „2 Limetten" (Menge/Einheit erkannt); Artikel nach **Gängen** gruppiert (Obst & Gemüse, Brot & Backwaren, Kühlregal, Fleisch & Fisch, Vorrat, Tiefkühl, Getränke, Haushalt, Sonstiges); Zeile zeigt „für <Rezept> · von <Person>" und Menge; Abhaken → Bereich „Erledigt"; „Erledigte entfernen" mit Bestätigung. Gleiche Artikel (Name + Einheit) werden **zusammengelegt** und Mengen addiert. |
 | `#/wuensche` | `js/views/wishes.js` | **Wunschliste**: Formular „Was wünschst du dir?" + „Wunsch von" (für Kinder ohne Konto; Demo: leer, sonst Anmeldename; zuletzt benutzter Name bleibt); Bereiche „Offen" (Knopf **Einplanen** → `#/plan?wish=:id`, löschen mit „Rückgängig") und „Eingeplant" (Sticker „Geplant · Wochentag, Datum"). Im Plan: Karte „Wunschliste · N offen" und Abschnitt „Wünsche" im Auswahl-Blatt. Passt ein Wunsch genau auf einen Rezepttitel, wird er als Rezept eingeplant, sonst als Notiz. Planeintrag entfernen → Wunsch wieder offen. |
-| `#/konto` | `js/views/account.js` | Name/E-Mail bzw. „Demo-Modus", **Familie** (Namen als Pillen mit x, „Name hinzufügen", max. 12 × 30 Zeichen, keine Dubletten; leer: „Mich hinzufügen (Name)", nicht im Demo-Modus), **Darstellung** (Automatisch / Hell / Dunkel, pro Gerät), Anleitung „Zum Home-Bildschirm" (nur wenn nicht installiert), Timer-Link, Abmelden bzw. „Demo zurücksetzen". |
+| `#/konto` | `js/views/account.js` | Name/E-Mail bzw. „Demo-Modus", **Familie** (Namen als Pillen mit x, „Name hinzufügen", max. 12 × 30 Zeichen, keine Dubletten; leer: „Mich hinzufügen (Name)", nicht im Demo-Modus), **Darstellung** (Automatisch / Hell / Dunkel, pro Gerät), **Bewegung** (Normal / Zeitlupe, pro Gerät, `localStorage 'cr-motion'`), Anleitung „Zum Home-Bildschirm" (nur wenn nicht installiert), Timer-Link, Abmelden bzw. „Demo zurücksetzen". 5× auf die Versionszeile tippen öffnet das Labor. |
+| `#/labor` (versteckt) | `js/views/lab.js` | **Animations-Labor**: Regler Tempo (`--motion-scale` 0,5–8), Federung (`--spring` 1–2,4), Bewegung (`--move` 0–1,5), live auf `<html style>`, nicht gespeichert, „Zurücksetzen"; je Animation eine Karte mit „Abspielen". |
 | (Anmeldung) | `js/views/login.js` | Nur im Familien-Modus ohne Anmeldung: Google-Knopf, E-Mail anmelden/Konto erstellen, Passwort vergessen. Danach ggf. **„Bitte E-Mail bestätigen"** oder **„Noch nicht freigeschaltet"** (E-Mail nicht in den Regeln). |
 
 **Global:** Meldungen oben (Toasts, optional mit Aktionsknopf); kleine **Timer-Leiste** über der Tab-Leiste, wenn ein Timer existiert; fertiger Timer → Ton + Vibration + rote Meldung „Timer „X" ist fertig" mit „Aus".
@@ -73,6 +74,7 @@ js/lib/aisles.js         Supermarkt-Gänge + Stichwort-Zuordnung
 js/lib/shop.js           addToList() (zusammenlegen), recipeItems()
 js/lib/family.js         familyMembers(ctx), saveFamily(ctx, namen) für einstellungen/familie
 js/lib/photo.js          Fotos verkleinern (Canvas → JPEG-Base64), makePhoto(), isPhotoData()
+js/lib/motion.js         Animationen: play/queue/flush (Wirkung nach Aktion), changed (Wertwechsel), buzz, Zeitlupe
 js/lib/symbols.js        Rezeptfarben (6) und Illustrationen (8, SVG)
 js/lib/icons.js          Linien-Icons icon(name), PLAY/PAUSE, ribbon()
 js/views/*.js            Ein Modul pro Bildschirm (siehe Abschnitt 2), u. a. wishes.js (Wunschliste)
@@ -126,6 +128,7 @@ Ereignisse werden **zentral delegiert** über Datenattribute:
 | `ctx.save(promise)` | Speichern ohne zu blockieren, Fehler als Toast |
 | `ctx.recipe(id)` | Rezept nach id |
 | `ctx.userName()` | Anzeigename der angemeldeten Person (Demo: „Du") |
+| `ctx.fx(selector, name)` | Einmal-Wirkung nach einer Aktion (Klasse `fx-<name>`), überlebt das Neuzeichnen. Deklarativ: `data-fx="pop"` bzw. `data-fx="pop:.box"` am geklickten Element. |
 | `ctx.T` | Timer-Modul: `start(label, sek, source)`, `toggle(id)`, `addMinute(id)`, `remove(id)`, `list()`, `findBySource(source)` |
 
 Live-Anzeigen: Elemente mit `data-tleft="<timerId>"` (Restzeit-Text) und `data-tring="<timerId>"` (SVG-Ring) werden jede Sekunde ohne Neuzeichnen aktualisiert.
@@ -279,6 +282,13 @@ Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Li
 ### Komponenten-Klassen (Auswahl)
 `.screen` (Seitencontainer; `.no-tabs` ohne Tab-Leiste) · `.row`, `.between`, `.grow` · `.btn` + `.primary`, `.accent`, `.smart`, `.done`, `.small`, `.block`, `.dashed`, `.danger`(`.confirm`) · `.btns` (gleich breite Knopfreihe) · `.icon-btn` (44er Rundknopf, `.on`) · `.stk` · `.card` · `.empty` (gestrichelter Leerzustand) · `.search` · `.chips` + `.chip[aria-pressed]` · `.field` + `.input` (`.pill`), `.textarea`, `.hint` · `.checklist` + `.checkrow[aria-pressed]` (+ `.box`, `.txt`, `.meta`, `.qty`) · `.rcard` (Rezeptkarte) · `.grid2` · `.tonight` · `.hero` · `.stats`/`.stat` · `.stepper` · `.steps` · `.tchip` (Zeit-Chip) · `.note-card` · `.seg` · `.swatches`/`.swatch` · `.symbols`/`.symbol` · `.paste-box` · `.cook` (+ `.prog`, `.bignum`, `.steptext`, `.uses`, `.tcard`, `.round`) · `.timer-card` (+ `.ring`) · `.quick` · `.week`/`.day` · `.slot`/`.meal` (`.note`) · `.banner` · `.sheet-bg`/`.sheet`/`.pick` · `.aisle`/`.aisle-head` · `.tabbar`/`.fab` · `.mini-timer` · `.toast` (`.alarm`) · `.error` · `.login-card`
 
+### Bewegung (Animationen)
+- **Tokens** in `:root`: `--dur-press 80ms`, `--dur-fast 140ms`, `--dur-base 220ms`, `--dur-slow 360ms`, `--ease-out`, `--ease-in`, `--spring 1.56` → `--ease-spring`, `--motion-scale` (Tempo, Zeitlupe = 4), `--move` (Stärke aller Wege/Skalierungen). Fertige Dauern: `--t-press`, `--t-fast`, `--t-base`, `--t-slow` (schon × Tempo). **Keine festen ms-Werte oder Kurven.**
+- `render()` ersetzt das ganze `innerHTML`. Einmal-Animationen deshalb **nur** über: (1) `.is-entering` an `#app` (Seitenwechsel; ein Neuzeichnen kurz danach setzt die Animation über `--enter-skip` fort statt sie neu zu starten), (2) `ctx.fx()`/`data-fx` (Queue in `motion.js`, fortgesetzt über `--fx-skip`), (3) `changed(ctx.ui, key, wert)` (Wertwechsel, z. B. Zähler). Animationen nutzen `animation-delay: var(--fx-skip, 0ms)` bzw. `var(--enter-skip, 0ms)` und `animation-fill-mode: backwards`.
+- **Nie `transform` animieren**, sondern `scale`, `translate`, `rotate` (additiv; `.tilt-*`, `.tabbar`, `.mini-timer` nutzen `transform`). Wege und Skalierungen mit `calc(… * var(--move))`.
+- **Bewegung reduzieren** (System): `--move: 0`, kürzere Dauern; nur Einblenden bleibt.
+- iOS: ein leerer `touchstart`-Listener in `app.js` sorgt dafür, dass `:active` greift.
+
 **Design-Anpassungen** möglichst über die Tokens in `:root` lösen (ein Farbthema = nur Token-Werte ändern). Inline-`style` in den Views nur für Einzelfälle.
 
 ---
@@ -296,6 +306,7 @@ Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Li
 8. Nach jeder Änderung an App-Dateien: **`VERSION` in `sw.js` hochzählen** (`v1` → `v2` …); neue Dateien in `FILES` eintragen.
 9. Neue Firestore-Sammlung ⇒ `firestore.rules` anpassen und den Nutzer erinnern, die Regeln in der Firebase-Konsole zu veröffentlichen.
 10. Neue Felder an bestehenden Dokumenten **optional** behandeln (`r.feld ?? standard`), alte Daten haben sie nicht.
+10b. **Animationen** nur mit den Bewegungs-Tokens und den drei Mustern aus Abschnitt 6 „Bewegung"; nie `transform` animieren; neue Animation auch als Karte ins Labor (`lab.js`).
 11. Antwortformat: **vollständige geänderte Dateien** oder eindeutige „Suchen → Ersetzen"-Blöcke mit Dateipfad.
 
 ---

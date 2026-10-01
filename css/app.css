@@ -32,6 +32,17 @@
   --body: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Bewegung. Alle Animationen nutzen diese Tokens (keine festen ms-Werte oder Kurven).
+     --motion-scale streckt alle Dauern (Zeitlupe, Labor), --move skaliert alle Wege und Skalierungen. */
+  --dur-press: 80ms; --dur-fast: 140ms; --dur-base: 220ms; --dur-slow: 360ms;
+  --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-in: cubic-bezier(.4, 0, 1, 1);
+  --spring: 1.56; --ease-spring: cubic-bezier(.34, var(--spring), .64, 1);
+  --motion-scale: 1; --move: 1;
+  /* Fertige Dauern (schon mit Tempo multipliziert) */
+  --t-press: calc(var(--dur-press) * var(--motion-scale));
+  --t-fast: calc(var(--dur-fast) * var(--motion-scale));
+  --t-base: calc(var(--dur-base) * var(--motion-scale));
+  --t-slow: calc(var(--dur-slow) * var(--motion-scale));
   color-scheme: light;
 }
 
@@ -60,7 +71,13 @@ button { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 svg { flex-shrink: 0; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+/* Zeitlupe (Konto → Bewegung): alles 4× langsamer. */
+html[data-motion="slow"] { --motion-scale: 4; }
+/* Bewegung reduzieren (System): keine Wege, Skalierungen oder Drehungen, nur kurzes Einblenden. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --move: 0; --dur-press: 40ms; --dur-fast: 90ms; --dur-base: 140ms; --dur-slow: 180ms; }
+  .mode-switch .knob { transition-property: background-color; }
+}
 
 #app { max-width: 480px; margin: 0 auto; position: relative; min-height: 100vh; min-height: 100dvh; overflow-x: hidden; }
 .screen { padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 170px); display: flex; flex-direction: column; gap: 18px; position: relative; }
@@ -78,7 +95,7 @@ svg { flex-shrink: 0; }
 .icon-btn.on { background: var(--fav); color: var(--on-color); }
 /* Hell/Dunkel-Schalter (Startseite): Pille mit Knopf, links Sonne, rechts Mond. */
 .mode-switch { position: relative; width: 78px; height: 44px; flex-shrink: 0; padding: 0 10px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); color: var(--muted); display: inline-flex; align-items: center; justify-content: space-between; }
-.mode-switch .knob { position: absolute; top: 3px; left: 3px; width: 34px; height: 34px; border-radius: 999px; border: 2px solid var(--line); background: var(--timer); color: var(--on-color); display: flex; align-items: center; justify-content: center; transition: transform .2s ease, background-color .2s ease; }
+.mode-switch .knob { position: absolute; top: 3px; left: 3px; width: 34px; height: 34px; border-radius: 999px; border: 2px solid var(--line); background: var(--timer); color: var(--on-color); display: flex; align-items: center; justify-content: center; transition: transform var(--t-base) var(--ease-spring), background-color var(--t-base) var(--ease-out); }
 .mode-switch[aria-checked="true"] .knob { transform: translateX(34px); background: var(--sky); }
 .display { margin: 0; font-family: var(--display); font-weight: 800; font-size: clamp(60px, 20vw, 88px); overflow-wrap: anywhere; line-height: .8; letter-spacing: -.045em; }
 .display.md { font-size: clamp(46px, 14vw, 60px); }
@@ -219,8 +236,8 @@ svg { flex-shrink: 0; }
 .timer-card .ring svg { transform: rotate(-90deg); }
 .timer-card .ring button { position: absolute; left: 18px; top: 18px; width: 48px; height: 48px; border-radius: 999px; border: 0; background: var(--card); color: var(--ink); display: flex; align-items: center; justify-content: center; padding: 0; }
 .timer-card .time { font-family: var(--display); font-weight: 800; font-size: 40px; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
-.timer-card.ringing { animation: pulse 1s ease-in-out infinite; }
-@keyframes pulse { 50% { transform: scale(1.02); } }
+.timer-card.ringing { animation: pulse calc(var(--t-slow) * 1.4) var(--ease-out) infinite alternate; }
+@keyframes pulse { to { scale: calc(1 + .02 * var(--move)); } }
 .quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 
 /* ---- Wochenplan ---- */
@@ -279,3 +296,18 @@ div.hero.photo { cursor: default; }
 .sheet-bg.photo-view { align-items: center; padding: calc(env(safe-area-inset-top, 0px) + 72px) 16px calc(var(--safe-bottom) + 24px); cursor: zoom-out; }
 .photo-view img { max-width: 100%; max-height: 100%; object-fit: contain; border: 2px solid var(--line); border-radius: 24px; background: var(--card); }
 .photo-view .icon-btn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 16px; background: var(--card); color: var(--ink); }
+
+/* ---- Bewegung: Druck-Gefühl (Phase 1: nur im Labor über .press; Phase 2 überträgt es auf die App) ---- */
+.press { transition: scale var(--t-fast) var(--ease-spring), translate var(--t-fast) var(--ease-spring), box-shadow var(--t-fast) var(--ease-spring); }
+.press:active:not([disabled]), .press.is-pressed { scale: calc(1 - .04 * var(--move)); transition-duration: var(--t-press); transition-timing-function: var(--ease-out); }
+.press.press-soft:active:not([disabled]), .press.press-soft.is-pressed { scale: calc(1 - .02 * var(--move)); }
+
+/* ---- Animations-Labor (#/labor) ---- */
+.lab-card { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.lab-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lab-range { display: flex; flex-direction: column; gap: 2px; }
+.lab-range .top { display: flex; justify-content: space-between; font-weight: 700; }
+.lab-range output { color: var(--muted); font-variant-numeric: tabular-nums; }
+.lab-range input { width: 100%; height: 44px; margin: 0; accent-color: var(--accent); }
+.lab-demo { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 4px 0; }
+.lab-cardbox { width: 100%; height: 72px; font-weight: 700; color: var(--ink); }
