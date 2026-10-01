@@ -50,18 +50,19 @@ export function render() {
       <button type="button" class="btn block" data-act="reset" ${tuned ? '' : 'disabled'}>Zurücksetzen</button>
       <p class="hint" style="margin:0">Die Regler gelten sofort für die ganze App, bis du zurücksetzt oder neu lädst.${getMotion() === 'slow' ? ' Zeitlupe ist an (Konto → Bewegung).' : ''}</p>
     </section>
-    ${demoCard('press', 'Druck-Gefühl', 'Drück die Knöpfe oder tipp auf „Abspielen". Knöpfe werden kleiner, Karten nur ein bisschen.', `
-      <button type="button" class="btn press">Normal</button>
-      <button type="button" class="btn primary press">Gefüllt</button>
-      <button type="button" class="icon-btn press" aria-label="Herz">${icon('heart')}</button>
-      <button type="button" class="chip press">Chip</button>
-      <button type="button" class="card press press-soft lab-cardbox">Karte</button>`)}
+    ${demoCard('press', 'Druck-Gefühl', 'Drück die Knöpfe oder tipp auf „Abspielen". Knöpfe werden kleiner, Karten nur ein bisschen, gefüllte Knöpfe sinken in ihren Schatten.', `
+      <button type="button" class="btn" data-demo="1">Normal</button>
+      <button type="button" class="btn primary" data-demo="2">Gefüllt</button>
+      <button type="button" class="btn accent" data-demo="3">Tomate</button>
+      <button type="button" class="icon-btn" data-demo="4" aria-label="Herz">${icon('heart')}</button>
+      <button type="button" class="chip" data-demo="5">Chip</button>
+      <button type="button" class="card lab-cardbox" data-demo="6">Karte</button>`)}
   </main>`;
 }
 
 // Kurz „gedrückt" halten, dann loslassen (zeigt Drücken und Zurückfedern).
 function pressDemo() {
-  const els = document.querySelectorAll('#lab-press .press');
+  const els = document.querySelectorAll('#lab-press button');
   els.forEach((el) => el.classList.add('is-pressed'));
   setTimeout(() => els.forEach((el) => el.classList.remove('is-pressed')), 80 * motionScale() + 220);
 }

@@ -1,7 +1,7 @@
 // App-Kern: Daten abonnieren, Seiten zeichnen, Klicks verteilen, Timer ticken lassen.
 import { createStore } from './store.js';
 import { applyTheme } from './theme.js';
-import { applyMotion, flush, queue, queueFromElement, motionScale } from './lib/motion.js';
+import { applyMotion, flush, queue, queueFromElement, queueRelease, PRESSABLE, motionScale } from './lib/motion.js';
 import * as T from './timers.js';
 import { esc, formatTime } from './lib/format.js';
 import { icon } from './lib/icons.js';
@@ -180,8 +180,11 @@ root.addEventListener('click', (ev) => {
   // data-fx="pop" bzw. "pop:.box": Wirkung vormerken; sie greift nach dem Neuzeichnen (oder sofort).
   const fx = ev.target.closest('[data-fx]');
   if (fx && root.contains(fx)) queueFromElement(fx);
+  // Gedrückter Knopf/Karte federt zurück, auch wenn die Aktion die Seite sofort neu zeichnet.
+  const hit = ev.target.closest('a[href], button');
+  const press = hit && root.contains(hit) && !hit.disabled && hit.matches(PRESSABLE) && queueRelease(root, hit);
   handler('act')(ev);
-  if (fx) flush(root);
+  if (fx || press) flush(root);
 });
 // iOS (Home-Bildschirm-App): :active greift nur, wenn es irgendwo einen touchstart-Listener gibt.
 document.addEventListener('touchstart', () => {}, { passive: true });

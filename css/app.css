@@ -297,10 +297,34 @@ div.hero.photo { cursor: default; }
 .photo-view img { max-width: 100%; max-height: 100%; object-fit: contain; border: 2px solid var(--line); border-radius: 24px; background: var(--card); }
 .photo-view .icon-btn { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 16px); right: 16px; background: var(--card); color: var(--ink); }
 
-/* ---- Bewegung: Druck-Gefühl (Phase 1: nur im Labor über .press; Phase 2 überträgt es auf die App) ---- */
-.press { transition: scale var(--t-fast) var(--ease-spring), translate var(--t-fast) var(--ease-spring), box-shadow var(--t-fast) var(--ease-spring); }
-.press:active:not([disabled]), .press.is-pressed { scale: calc(1 - .04 * var(--move)); transition-duration: var(--t-press); transition-timing-function: var(--ease-out); }
-.press.press-soft:active:not([disabled]), .press.press-soft.is-pressed { scale: calc(1 - .02 * var(--move)); }
+/* ---- Bewegung: Druck-Gefühl ----
+   Knöpfe .96, Karten/Zeilen .98. Gefüllte Knöpfe haben einen harten Sticker-Schatten und sinken beim Drücken hinein.
+   Schatten ausschalten: --btn-shadow: none; --btn-sink: 0px. Nach dem Klick federt das Element über .fx-release zurück
+   (js/lib/motion.js), damit man es auch sieht, wenn die Seite sofort neu gezeichnet wird.
+   Grundregeln mit :where() (Spezifität 0), damit Varianten und :active sie sicher überschreiben. */
+:root { --btn-shadow: 0 3px 0 var(--line); --btn-sink: 3px; }
+:where(.btn, .icon-btn, .chip, .seg button, .tabbar .pill a, .day, .swatch, .symbol, .go, .fab, .rcard, .pick, .checkrow, .tonight, .lab-cardbox) {
+  --press-scale: calc(1 - .04 * var(--move)); --press-shift: 0 0;
+  transition: scale var(--t-fast) var(--ease-spring), translate var(--t-fast) var(--ease-spring), box-shadow var(--t-fast) var(--ease-spring);
+}
+:where(.rcard, .pick, .checkrow, .tonight, .lab-cardbox) { --press-scale: calc(1 - .02 * var(--move)); }
+:where(.btn.primary, .btn.accent, .btn.done, .btn.smart, .fab) { --press-shift: 0 calc(var(--btn-sink) * var(--move)); box-shadow: var(--btn-shadow); }
+:is(.btn, .icon-btn, .chip, .seg button, .tabbar .pill a, .day, .swatch, .symbol, .go, .fab, .rcard, .pick, .checkrow, .tonight, .lab-cardbox):active:not([disabled]),
+:is(.btn, .icon-btn, .chip, .seg button, .tabbar .pill a, .day, .swatch, .symbol, .go, .fab, .rcard, .pick, .checkrow, .tonight, .lab-cardbox).is-pressed {
+  scale: var(--press-scale); translate: var(--press-shift);
+  transition-duration: var(--t-press); transition-timing-function: var(--ease-out);
+}
+:is(.btn.primary, .btn.accent, .btn.done, .btn.smart, .fab):active:not([disabled]),
+:is(.btn.primary, .btn.accent, .btn.done, .btn.smart, .fab).is-pressed { box-shadow: 0 0 0 var(--line); }
+.fab svg { transition: rotate var(--t-base) var(--ease-spring); }
+.fab:active svg, .fab.is-pressed svg { rotate: calc(90deg * var(--move)); }
+/* Zurückfedern nach dem Klick (auch am neu gezeichneten Element) */
+.fx-release { animation: press-release var(--t-fast) var(--ease-spring) var(--fx-skip, 0ms) backwards; }
+:is(.btn.primary, .btn.accent, .btn.done, .btn.smart, .fab).fx-release { animation-name: press-release-lift; }
+.fab.fx-release svg { animation: fab-turn var(--t-base) var(--ease-spring) var(--fx-skip, 0ms) backwards; }
+@keyframes press-release { from { scale: var(--press-scale); translate: var(--press-shift); } }
+@keyframes press-release-lift { from { scale: var(--press-scale); translate: var(--press-shift); box-shadow: 0 0 0 var(--line); } }
+@keyframes fab-turn { from { rotate: calc(90deg * var(--move)); } }
 
 /* ---- Animations-Labor (#/labor) ---- */
 .lab-card { padding: 18px; display: flex; flex-direction: column; gap: 12px; }

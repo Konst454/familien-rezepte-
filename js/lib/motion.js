@@ -41,8 +41,10 @@ export function play(el, name, skip = 0) {
   t[cls] = setTimeout(done, Math.max(0, lifespan() - skip));
 }
 
-export function queue(sel, name) {
-  pending.push({ sel, name, at: Date.now(), started: 0 });
+// index: nur das n-te passende Element (wenn der Selektor mehrere trifft, z. B. zwei gleiche Knöpfe).
+export function queue(sel, name, index = null) {
+  if (!sel) return;
+  pending.push({ sel, name, index, at: Date.now(), started: 0 });
 }
 
 // Am Ende von render(): Wirkungen auf die (neu gezeichneten) Elemente legen.
@@ -52,7 +54,8 @@ export function flush(root) {
   pending = pending.filter((e) => (e.started ? now - e.started < span : now - e.at < LIFETIME));
   pending.forEach((e) => {
     let els;
-    try { els = root.querySelectorAll(e.sel); } catch (err) { els = []; }
+    try { els = Array.from(root.querySelectorAll(e.sel)); } catch (err) { els = []; }
+    if (e.index !== null) els = els[e.index] ? [els[e.index]] : [];
     if (!els.length) return;
     if (!e.started) {
       e.started = now;
@@ -63,13 +66,29 @@ export function flush(root) {
   });
 }
 
-// Eindeutiger Selektor aus den data-Attributen eines Elements (für data-fx).
+const attr = (v) => String(v).replace(/["\\]/g, '\\$&');
+
+// Selektor, der das Element auch nach dem Neuzeichnen wiederfindet: id, data-Attribute, href oder aria-label.
 export function selectorFor(el) {
   if (el.id) return '#' + CSS.escape(el.id);
+  const tag = el.tagName.toLowerCase();
   const parts = Object.entries(el.dataset)
     .filter(([k]) => k !== 'fx')
-    .map(([k, v]) => `[data-${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${String(v).replace(/["\\]/g, '\\$&')}"]`);
-  return el.tagName.toLowerCase() + parts.join('');
+    .map(([k, v]) => `[data-${k.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase())}="${attr(v)}"]`);
+  if (parts.length) return tag + parts.join('');
+  if (el.getAttribute('href')) return `${tag}[href="${attr(el.getAttribute('href'))}"]`;
+  if (el.getAttribute('aria-label')) return `${tag}[aria-label="${attr(el.getAttribute('aria-label'))}"]`;
+  return null;
+}
+
+// Druck-Gefühl: Nach dem Klick federt der Knopf zurück (fx-release), auch wenn die Seite gerade neu gezeichnet wird.
+export const PRESSABLE = '.btn, .icon-btn, .chip, .seg button, .tabbar .pill a, .day, .swatch, .symbol, .fab, .rcard, .pick, .checkrow, .tonight, .lab-cardbox';
+
+export function queueRelease(root, el) {
+  const sel = selectorFor(el);
+  if (!sel) return false;
+  queue(sel, 'release', Array.from(root.querySelectorAll(sel)).indexOf(el));
+  return true;
 }
 
 // data-fx="pop" oder data-fx="pop:.box" → Eintrag in die Queue.
