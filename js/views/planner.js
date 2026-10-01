@@ -28,6 +28,21 @@ function saveMeals(ctx, date, meals) {
   else if (ctx.state.plan[key]) ctx.save(ctx.store.remove('plan', key));
 }
 
+function openWishes(ctx) {
+  return ctx.state.wunschliste.filter((w) => !w.geplantAm);
+}
+
+// Wunsch einplanen: als Rezept, wenn der Titel genau einem Rezept entspricht, sonst als Notiz.
+function planWish(ctx, w, date, slot) {
+  const key = w.titel.trim().toLowerCase();
+  const r = ctx.state.recipes.find((x) => String(x.titel).trim().toLowerCase() === key);
+  const entry = r
+    ? { slot, rezeptId: r.id, titel: r.titel, von: ctx.userName(), wunschId: w.id }
+    : { slot, titel: w.titel, von: ctx.userName(), wunschId: w.id };
+  saveMeals(ctx, date, [...mealsOf(ctx, date), entry]);
+  ctx.save(ctx.store.update('wunschliste', w.id, { geplantAm: isoDate(date) }));
+}
+
 function mealHtml(ctx, m, i, key) {
   const r = m.rezeptId ? ctx.recipe(m.rezeptId) : null;
   const del = `<button type="button" class="x" data-act="removeMeal" data-date="${key}" data-i="${i}" aria-label="${esc(m.titel)} entfernen">${icon('x', 18, 2.4)}</button>`;
@@ -48,12 +63,15 @@ function sheetHtml(ctx) {
   const rows = ctx.state.recipes.filter((r) => !q || r.titel.toLowerCase().includes(q)).map((r) =>
     `<button type="button" class="pick" data-act="pickRecipe" data-id="${esc(r.id)}"><span class="sq" style="background:${colorValue(r.farbe)}">${symbolSvg(r.symbol, 30)}</span><b class="grow">${esc(r.titel)}</b>${icon('plus', 18, 2.4)}</button>`).join('');
   const d = new Date(sh.date);
+  const wishPicks = openWishes(ctx).map((w) =>
+    `<button type="button" class="pick" data-act="pickWish" data-id="${esc(w.id)}"><span class="sq" style="background:var(--note);color:var(--on-color)">${icon('heart', 20)}</span><span class="grow" style="display:flex;flex-direction:column"><b>${esc(w.titel)}</b>${w.wunschVon ? `<span class="small muted">von ${esc(w.wunschVon)}</span>` : ''}</span>${icon('plus', 18, 2.4)}</button>`).join('');
   return `<div class="sheet-bg" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="Mahlzeit hinzufügen" data-act="noop">
     <div class="row between"><h2 class="h3">${esc(sh.slot)} · ${esc(WEEKDAYS[(d.getDay() + 6) % 7])}</h2>
       <button type="button" class="icon-btn" data-act="closeSheet" aria-label="Schließen">${icon('x')}</button></div>
     <form class="row" data-submit="addNote">
       <label class="grow" for="plan-note"><span class="sr-only">Notiz</span><input id="plan-note" class="input pill" type="text" placeholder="Notiz, z. B. Reste oder Essen gehen" autocomplete="off"></label>
       <button type="submit" class="btn small" style="height:50px">Notiz</button></form>
+    ${wishPicks ? `<section style="display:flex;flex-direction:column;gap:8px" aria-label="Wünsche"><span class="label muted">Wünsche</span>${wishPicks}</section>` : ''}
     <label class="search" style="height:48px">${icon('search', 18)}<span class="sr-only">Rezept suchen</span><input id="plan-q" type="search" placeholder="Rezept suchen" autocomplete="off" data-input="planQuery" value="${esc(ctx.ui.planQuery || '')}"></label>
     <div id="plan-picks" style="display:flex;flex-direction:column;gap:8px">${rows || '<p class="muted small">Keine Rezepte gefunden.</p>'}</div>
   </div></div>`;
@@ -65,6 +83,10 @@ export function render(ctx) {
   const todayKey = isoDate(new Date());
   const addId = ctx.route.query.add;
   const addRecipe = addId ? ctx.recipe(addId) : null;
+  const wishId = ctx.route.query.wish;
+  const addWish = wishId ? ctx.state.wunschliste.find((w) => w.id === wishId && !w.geplantAm) : null;
+  const pending = addRecipe ? addRecipe.titel : addWish ? addWish.titel : '';
+  const nOpen = openWishes(ctx).length;
   const days = WEEKDAYS.map((name, i) => {
     const d = addDays(ws, i);
     const key = isoDate(d);
@@ -79,7 +101,7 @@ export function render(ctx) {
     return `<section class="slot" aria-label="${slot}">
       <div class="row between"><span class="label muted">${slot}</span></div>
       ${items.map((x) => mealHtml(ctx, x.m, x.i, selKey)).join('')}
-      <button type="button" class="btn dashed block small" style="height:46px" data-act="addSlot" data-slot="${slot}">${icon('plus', 16, 2.6)}${addRecipe ? `„${esc(addRecipe.titel)}" hier einplanen` : slot + ' hinzufügen'}</button>
+      <button type="button" class="btn dashed block small" style="height:46px" data-act="addSlot" data-slot="${slot}">${icon('plus', 16, 2.6)}${pending ? `„${esc(pending)}" hier einplanen` : slot + ' hinzufügen'}</button>
     </section>`;
   }).join('');
   const weekRecipes = WEEKDAYS.flatMap((_, i) => mealsOf(ctx, addDays(ws, i))).filter((m) => m.rezeptId && ctx.recipe(m.rezeptId));
@@ -93,10 +115,12 @@ export function render(ctx) {
       <button type="button" class="btn small smart tilt-l" style="height:44px" data-act="autofill">${icon('sparkle', 16)}Füllen</button>
     </div>
     <h1 class="display">Plan</h1>
-    ${addRecipe ? `<div class="banner">${icon('calendar', 18)}<span class="grow">Wähle Tag und Mahlzeit für „${esc(addRecipe.titel)}".</span><a class="btn small" href="#/plan">Abbrechen</a></div>` : ''}
+    ${pending ? `<div class="banner">${icon(addWish ? 'heart' : 'calendar', 18)}<span class="grow">Wähle Tag und Mahlzeit für „${esc(pending)}".</span><a class="btn small" href="#/plan">Abbrechen</a></div>` : ''}
     <div class="week" role="group" aria-label="Wochentage">${days}</div>
     <div class="row" style="gap:10px"><h2 class="h2" style="font-size:26px">${WEEKDAYS[ctx.ui.planDay]}, ${shortDate(sel)}</h2>${selKey === todayKey ? '<span class="stk tilt-r" style="font-size:12px;padding:3px 10px">Heute</span>' : ''}</div>
     ${slots}
+    <a class="tonight" style="background:var(--note)" href="#/wuensche">
+      ${icon('heart', 22)}<span class="grow" style="display:flex;flex-direction:column"><b style="font-size:15px">Wunschliste · ${nOpen} offen</b><span class="small">${nOpen ? 'Tippe im Plan auf „hinzufügen", um einen Wunsch einzuplanen' : 'Gerichte vorschlagen, die ihr essen wollt'}</span></span>${icon('next', 18, 2.4)}</a>
     ${weekRecipes.length ? `<button type="button" class="tonight" style="text-align:left;width:100%;cursor:pointer" data-act="weekToList">
       ${icon('cart', 22)}<span class="grow" style="display:flex;flex-direction:column"><b style="font-size:15px">Woche auf die Einkaufsliste</b><span class="small">Zutaten aus ${weekRecipes.length} geplanten Rezepten</span></span>${icon('next', 18, 2.4)}</button>` : ''}
     ${sheetHtml(ctx)}
@@ -112,6 +136,14 @@ export const actions = {
     const date = selectedDate(ctx);
     const addId = ctx.route.query.add;
     const r = addId ? ctx.recipe(addId) : null;
+    const wishId = ctx.route.query.wish;
+    const w = wishId ? ctx.state.wunschliste.find((x) => x.id === wishId && !x.geplantAm) : null;
+    if (w && !r) {
+      planWish(ctx, w, date, slot);
+      ctx.toast(`Wunsch „${w.titel}" für ${WEEKDAYS[ctx.ui.planDay]} eingeplant`);
+      ctx.go('#/plan');
+      return;
+    }
     if (r) {
       saveMeals(ctx, date, [...mealsOf(ctx, date), { slot, rezeptId: r.id, titel: r.titel, von: ctx.userName() }]);
       ctx.toast(`„${r.titel}" für ${WEEKDAYS[ctx.ui.planDay]} eingeplant`);
@@ -138,6 +170,14 @@ export const actions = {
     ctx.ui.planSheet = null;
     ctx.rerender();
   },
+  pickWish(ctx, el) {
+    const sh = ctx.ui.planSheet;
+    const w = ctx.state.wunschliste.find((x) => x.id === el.dataset.id);
+    if (!w) return;
+    planWish(ctx, w, new Date(sh.date), sh.slot);
+    ctx.ui.planSheet = null;
+    ctx.rerender();
+  },
   addNote(ctx) {
     const input = document.getElementById('plan-note');
     const text = input.value.trim();
@@ -150,8 +190,13 @@ export const actions = {
   },
   removeMeal(ctx, el) {
     const date = new Date(el.dataset.date + 'T12:00:00');
-    const meals = mealsOf(ctx, date).filter((_, i) => i !== Number(el.dataset.i));
-    saveMeals(ctx, date, meals);
+    const all = mealsOf(ctx, date);
+    const removed = all[Number(el.dataset.i)];
+    saveMeals(ctx, date, all.filter((_, i) => i !== Number(el.dataset.i)));
+    // Eingeplanter Wunsch wird wieder offen.
+    if (removed && removed.wunschId && ctx.state.wunschliste.some((w) => w.id === removed.wunschId)) {
+      ctx.save(ctx.store.update('wunschliste', removed.wunschId, { geplantAm: null }));
+    }
   },
   autofill(ctx) {
     const ws = weekStart(ctx);

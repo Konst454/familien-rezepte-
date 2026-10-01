@@ -28,6 +28,7 @@ export function render(ctx) {
     ${standalone ? '' : `<div class="note-card" style="transform:none"><h2 class="h3">Als App auf den Home-Bildschirm</h2>
       <p><b>iPhone/iPad (Safari):</b> unten auf Teilen ${icon('share', 16)} tippen, dann „Zum Home-Bildschirm".<br><b>Android (Chrome):</b> Menü ⋮ oben rechts, dann „App installieren" oder „Zum Startbildschirm hinzufügen".</p></div>`}
     <div class="btns" style="flex-direction:column">
+      <a class="btn block" href="#/wuensche">${icon('heart', 18)}Wunschliste</a>
       <a class="btn block" href="#/timer">${icon('clock', 18)}Timer</a>
       ${demo ? '<button type="button" class="btn block" data-act="reset">Demo zurücksetzen</button>' : `<button type="button" class="btn block" data-act="logout">${icon('logout', 18)}Abmelden</button>`}
     </div>

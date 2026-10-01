@@ -4,21 +4,26 @@ import { uid } from './lib/format.js';
 import { EXAMPLES } from './examples.js';
 
 const KEY = 'cr-demo-data';
-const COLLS = ['recipes', 'shopping', 'plan'];
+const COLLS = ['recipes', 'shopping', 'plan', 'wunschliste'];
 
 export function createLocalStore() {
   let data = read();
   if (!data) {
-    data = { recipes: {}, shopping: {}, plan: {} };
+    data = { recipes: {}, shopping: {}, plan: {}, wunschliste: {} };
     const now = Date.now();
     EXAMPLES.forEach((r, i) => { data.recipes['bsp' + i] = { ...r, beispiel: true, erstelltVon: 'Demo', geaendertAm: now - i }; });
     write(data);
   }
-  const subs = { recipes: new Set(), shopping: new Set(), plan: new Set() };
+  const subs = {};
+  COLLS.forEach((c) => { subs[c] = new Set(); });
   const user = { uid: 'demo', name: 'Du', email: '' };
 
+  // Alte Demo-Daten kennen neuere Sammlungen (z. B. wunschliste) noch nicht: fehlende ergänzen.
   function read() {
-    try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; }
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(KEY)); } catch (e) { d = null; }
+    if (d && typeof d === 'object') COLLS.forEach((c) => { if (!d[c] || typeof d[c] !== 'object') d[c] = {}; });
+    return d;
   }
   function write(d) {
     try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}

@@ -13,10 +13,11 @@ import * as planner from './views/planner.js';
 import * as shopping from './views/shopping.js';
 import * as account from './views/account.js';
 import * as login from './views/login.js';
+import * as wishes from './views/wishes.js';
 
 const ROUTES = {
   '': library, rezepte: library, rezept: recipe, neu: editor, bearbeiten: editor,
-  kochen: cook, timer: timers, plan: planner, liste: shopping, konto: account
+  kochen: cook, timer: timers, plan: planner, liste: shopping, konto: account, wuensche: wishes
 };
 
 const root = document.getElementById('app');
@@ -24,8 +25,8 @@ const toastBox = document.getElementById('toasts');
 
 const state = {
   store: null, user: null, denied: false,
-  recipes: [], shopping: [], plan: {},
-  loaded: { recipes: false, shopping: false, plan: false },
+  recipes: [], shopping: [], plan: {}, wunschliste: [],
+  loaded: { recipes: false, shopping: false, plan: false, wunschliste: false },
   ui: {}
 };
 
@@ -240,6 +241,10 @@ async function start() {
         state.plan = {};
         rows.forEach((r) => { state.plan[r.id] = r; });
         state.loaded.plan = true; render();
+      }));
+      unsubs.push(state.store.subscribe('wunschliste', (rows) => {
+        state.wunschliste = rows.sort((a, b) => (a.erstelltAm || 0) - (b.erstelltAm || 0));
+        state.loaded.wunschliste = true; render();
       }));
     }
     render();
