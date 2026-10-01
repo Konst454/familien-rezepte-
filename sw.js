@@ -1,11 +1,11 @@
 // Service Worker: hält die App-Dateien offline bereit.
 // Beim Ändern von Dateien VERSION erhöhen, damit alle Geräte die neue Version laden.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'creative-recipes-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/store.js', 'js/store-local.js', 'js/store-firebase.js', 'js/firebase-config.js',
-  'js/timers.js', 'js/examples.js',
+  'js/timers.js', 'js/examples.js', 'js/theme.js',
   'js/lib/format.js', 'js/lib/parse.js', 'js/lib/aisles.js', 'js/lib/symbols.js', 'js/lib/icons.js', 'js/lib/shop.js',
   'js/views/library.js', 'js/views/recipe.js', 'js/views/editor.js', 'js/views/cook.js', 'js/views/timers.js',
   'js/views/planner.js', 'js/views/shopping.js', 'js/views/account.js', 'js/views/login.js',

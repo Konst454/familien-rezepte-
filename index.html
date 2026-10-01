@@ -6,10 +6,28 @@
   <title>Creative Recipes</title>
   <meta name="description" content="Rezepte, Wochenplan und Einkaufsliste für die Familie">
   <meta name="theme-color" content="#FFF6EC">
+  <meta name="color-scheme" content="light dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Rezepte">
+  <!-- Darstellung sofort setzen (vor dem Stylesheet), damit nichts hell aufblitzt. Logik: js/theme.js -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('cr-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+        var dark = t === 'dark' || (t !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', dark ? '#111214' : '#FFF6EC');
+      } catch (e) {}
+    })();
+  </script>
+  <style>
+    html { background: #FFF6EC; color-scheme: light; }
+    html[data-theme="dark"] { background: #111214; color-scheme: dark; }
+    @media (prefers-color-scheme: dark) { html:not([data-theme="light"]) { background: #111214; color-scheme: dark; } }
+  </style>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">

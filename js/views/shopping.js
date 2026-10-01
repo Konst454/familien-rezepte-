@@ -25,7 +25,7 @@ export function render(ctx) {
   if (unknown.length) groups.push({ a: AISLES[AISLES.length - 1], rows: unknown });
 
   const groupHtml = groups.map((g) => `<section class="aisle" aria-label="${esc(g.a.name)}">
-      <div class="aisle-head"><span class="stk" style="background:${g.a.color}">${esc(g.a.name)}</span><span class="small muted">${g.rows.length}</span></div>
+      <div class="aisle-head"><span class="stk" style="background:${g.a.color}${g.a.color === 'var(--card)' ? ';color:var(--ink)' : ''}">${esc(g.a.name)}</span><span class="small muted">${g.rows.length}</span></div>
       <div class="checklist">${g.rows.map(row).join('')}</div></section>`).join('');
 
   const confirm = ctx.ui.confirmClear;
@@ -43,7 +43,7 @@ export function render(ctx) {
     ${!ctx.state.loaded.shopping ? '<p class="muted">Liste wird geladen …</p>'
       : !open.length ? `<div class="empty"><div class="h3">${done.length ? 'Alles erledigt' : 'Die Liste ist leer'}</div><p class="muted small" style="margin:0;line-height:1.45">Oben etwas eintippen, oder im Rezept auf „Auf die Liste" tippen.</p></div>` : groupHtml}
     ${done.length ? `<section class="aisle" aria-label="Erledigt">
-      <div class="aisle-head"><span class="stk" style="background:var(--soft)">Erledigt</span><span class="small muted">${done.length}</span></div>
+      <div class="aisle-head"><span class="stk" style="background:var(--soft);color:var(--ink)">Erledigt</span><span class="small muted">${done.length}</span></div>
       <div class="checklist">${done.map(row).join('')}</div>
       <button type="button" class="btn ${confirm ? 'danger confirm' : ''} block" data-act="clearDone">${icon('trash', 18)}${confirm ? 'Wirklich entfernen? Nochmal tippen' : 'Erledigte entfernen'}</button>
     </section>` : ''}

@@ -12,7 +12,7 @@ export function render(ctx) {
     const offset = 213.6 * (1 - t.left / Math.max(1, t.total));
     return `<div class="timer-card ${t.done ? 'ringing' : ''}" style="background:${t.done ? 'var(--accent)' : COLORS[k % COLORS.length]}">
       <div class="ring">
-        <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="34" fill="#FFFFFF" stroke="var(--line)" stroke-width="2"/><circle cx="42" cy="42" r="34" fill="none" stroke="var(--line)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="${offset}" stroke-linecap="round" data-tring="${t.id}"/></svg>
+        <svg width="84" height="84" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="34" fill="var(--card)" stroke="var(--line)" stroke-width="2"/><circle cx="42" cy="42" r="34" fill="none" stroke="var(--line)" stroke-width="10" stroke-dasharray="213.6" stroke-dashoffset="${offset}" stroke-linecap="round" data-tring="${t.id}"/></svg>
         <button type="button" data-act="toggle" data-id="${t.id}" aria-label="${t.running ? 'Anhalten' : 'Starten'}: ${esc(t.label)}">${t.running ? PAUSE : PLAY}</button>
       </div>
       <div class="grow" style="display:flex;flex-direction:column;gap:2px">

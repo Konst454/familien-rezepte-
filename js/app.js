@@ -1,5 +1,6 @@
 // App-Kern: Daten abonnieren, Seiten zeichnen, Klicks verteilen, Timer ticken lassen.
 import { createStore } from './store.js';
+import { applyTheme } from './theme.js';
 import * as T from './timers.js';
 import { esc, formatTime } from './lib/format.js';
 import { icon } from './lib/icons.js';
@@ -210,6 +211,7 @@ setInterval(() => {
 
 // ---- Start ----
 async function start() {
+  applyTheme();
   render();
   try {
     state.store = await createStore();

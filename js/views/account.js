@@ -1,6 +1,7 @@
 // Konto, Abmelden und Anleitung „Zum Home-Bildschirm".
 import { esc } from '../lib/format.js';
 import { icon } from '../lib/icons.js';
+import { getTheme, setTheme } from '../theme.js';
 
 export const id = 'account';
 
@@ -17,6 +18,13 @@ export function render(ctx) {
       ${!demo && u.email ? `<span class="muted">${esc(u.email)}</span>` : ''}
       ${demo ? '<p class="hint" style="margin:6px 0 0">Die Daten liegen nur in diesem Browser. Sobald die Firebase-Konfiguration eingetragen ist, teilt die ganze Familie Rezepte, Plan und Einkaufsliste.</p>' : ''}
     </div>
+    <section class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px" aria-labelledby="theme-h">
+      <h2 class="h3" id="theme-h">Darstellung</h2>
+      <div class="seg" role="group" aria-label="Darstellung" style="align-self:flex-start">
+        ${[['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([m, l]) => `<button type="button" style="height:44px;padding:0 16px" data-act="theme" data-mode="${m}" aria-pressed="${getTheme() === m}">${l}</button>`).join('')}
+      </div>
+      <p class="hint" style="margin:0">Gilt nur für dieses Gerät. „Automatisch" folgt der Einstellung des Handys.</p>
+    </section>
     ${standalone ? '' : `<div class="note-card" style="transform:none"><h2 class="h3">Als App auf den Home-Bildschirm</h2>
       <p><b>iPhone/iPad (Safari):</b> unten auf Teilen ${icon('share', 16)} tippen, dann „Zum Home-Bildschirm".<br><b>Android (Chrome):</b> Menü ⋮ oben rechts, dann „App installieren" oder „Zum Startbildschirm hinzufügen".</p></div>`}
     <div class="btns" style="flex-direction:column">
@@ -28,6 +36,7 @@ export function render(ctx) {
 }
 
 export const actions = {
+  theme(ctx, el) { setTheme(el.dataset.mode); ctx.rerender(); },
   async logout(ctx) { await ctx.store.signOut(); ctx.go('#/rezepte'); },
   reset(ctx) {
     if (!ctx.ui.confirmReset) { ctx.ui.confirmReset = true; ctx.toast('Nochmal tippen, um alle Demo-Daten zu löschen'); setTimeout(() => { ctx.ui.confirmReset = false; }, 4000); return; }

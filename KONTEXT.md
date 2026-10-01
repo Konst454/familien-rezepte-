@@ -37,7 +37,7 @@ Navigation per Hash-Route. Untere Tab-Leiste: **Rezepte · Plan · Liste** + rot
 | `#/timer` | `js/views/timers.js` | Alle Timer des Geräts: Ring-Fortschritt, Start/Pause, +1:00, Löschen; Schnellstart 1/5/10/15 Min.; eigener Timer (Name + Minuten). |
 | `#/plan` | `js/views/planner.js` | Woche (Mo–So) mit Punkten für geplante Tage, Wochen blättern; je Tag **Frühstück/Mittag/Abend**: Rezept wählen (Auswahl-Blatt mit Suche) oder Notiz; entfernen; **Füllen** (freie Abende automatisch, Favoriten zuerst, mit „Rückgängig"); **Woche auf die Einkaufsliste**. Mit `?add=:id`: Banner, Tipp auf einen Platz plant das Rezept ein. |
 | `#/liste` | `js/views/shopping.js` | „N offen"; Eingabe „2 Limetten" (Menge/Einheit erkannt); Artikel nach **Gängen** gruppiert (Obst & Gemüse, Brot & Backwaren, Kühlregal, Fleisch & Fisch, Vorrat, Tiefkühl, Getränke, Haushalt, Sonstiges); Zeile zeigt „für <Rezept> · von <Person>" und Menge; Abhaken → Bereich „Erledigt"; „Erledigte entfernen" mit Bestätigung. Gleiche Artikel (Name + Einheit) werden **zusammengelegt** und Mengen addiert. |
-| `#/konto` | `js/views/account.js` | Name/E-Mail bzw. „Demo-Modus", Anleitung „Zum Home-Bildschirm" (nur wenn nicht installiert), Timer-Link, Abmelden bzw. „Demo zurücksetzen". |
+| `#/konto` | `js/views/account.js` | Name/E-Mail bzw. „Demo-Modus", **Darstellung** (Automatisch / Hell / Dunkel, pro Gerät), Anleitung „Zum Home-Bildschirm" (nur wenn nicht installiert), Timer-Link, Abmelden bzw. „Demo zurücksetzen". |
 | (Anmeldung) | `js/views/login.js` | Nur im Familien-Modus ohne Anmeldung: Google-Knopf, E-Mail anmelden/Konto erstellen, Passwort vergessen. Danach ggf. **„Bitte E-Mail bestätigen"** oder **„Noch nicht freigeschaltet"** (E-Mail nicht in den Regeln). |
 
 **Global:** Meldungen oben (Toasts, optional mit Aktionsknopf); kleine **Timer-Leiste** über der Tab-Leiste, wenn ein Timer existiert; fertiger Timer → Ton + Vibration + rote Meldung „Timer „X" ist fertig" mit „Aus".
@@ -64,6 +64,7 @@ js/store-local.js        Demo-Modus (localStorage, Tabs synchron über 'storage'
 js/firebase-config.js    Firebase-Web-Konfiguration (leer = Demo-Modus) + familyId
 js/examples.js           3 Beispielrezepte
 js/timers.js             Timer-Logik (pro Gerät, localStorage 'cr-timers'), Wecker-Ton
+js/theme.js              Hell/Dunkel: getTheme(), setTheme(mode), applyTheme() (localStorage 'cr-theme')
 js/lib/format.js         esc(), Mengen formatieren, Zeiten, Datum (deutsch)
 js/lib/parse.js          Zutaten/Artikel/Zeiten/Rezepttext aus Freitext lesen
 js/lib/aisles.js         Supermarkt-Gänge + Stichwort-Zuordnung
@@ -224,7 +225,19 @@ Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Li
 | `--cook-bg`, `--cook-fg`, `--track`, `--cook-muted` | dunkel | Kochmodus |
 | `--danger` | `#B3261E` | Löschen |
 
-Text auf farbigen Flächen ist immer `--ink` (dunkel). Weißer Text nur auf `--ink` und `--smart`.
+| `--on-color` / `--on-color-muted` | `#1C1A17` / `#5C544B` | **Text auf Farbflächen**, in Hell und Dunkel gleich |
+| `--on-danger` | `#FFF` (dunkel: `#1C1A17`) | Text auf `--danger` |
+| `--plate` | `#FFF` (dunkel: `#F5F3EE`) | Grund hinter Rezept-Illustrationen (Bild-Auswahl) |
+| `--scrim` | `rgba(28,26,23,.45)` (dunkel: `rgba(0,0,0,.62)`) | Schleier hinter dem Auswahl-Blatt |
+
+**Textfarben-Regel:** Text auf `--bg` und `--card` = `var(--ink)`. Text auf Farbflächen (`--accent`, `--done`, `--note`, `--fav`, `--timer`, `--sky`, `--sage`, Rezeptfarben, `--cook-fg`) = `var(--on-color)`. Nie `--ink` auf Farbflächen verwenden: `--ink` wird im Dunkelmodus hell. Weißer Text nur auf `--smart` (`--on-smart`).
+
+### Dunkelmodus „Night Kitchen"
+- Umschaltung pro Gerät im Konto (Automatisch / Hell / Dunkel), Logik in `js/theme.js`. Ein Frühskript in `index.html` setzt den Modus vor dem ersten Zeichnen (kein Aufblitzen).
+- `css/app.css` überschreibt im Dunkeln nur diese Tokens: `--bg #111214`, `--card #1D1F24`, `--ink`/`--line #F5F3EE`, `--on-ink #111214`, `--muted #A8A39A`, `--soft #2A2D33`, `--danger #FF8A80`, `--on-danger`, `--plate`, `--scrim`. Farbflächen und Kochmodus bleiben gleich.
+- Die Dunkel-Tokens stehen **zweimal** (System-Media-Query und `[data-theme="dark"]`). **Beide Blöcke müssen gleich bleiben.**
+- Neue Farben deshalb immer als Token anlegen und in beiden Dunkel-Blöcken prüfen. Keine festen Hex-Farben in Views (Ausnahme: Illustrationen in `symbols.js`, die stehen immer auf Farbflächen).
+- Bekannte Grenze: Das Startbild der installierten App (Manifest) ist hell.
 
 ### Schrift
 - **Display:** Bricolage Grotesque 800, eng (`letter-spacing -0.035…-0.05em`, `line-height .8–.9`). Klassen `.display` (große Seitentitel, 60–88 px), `.h1` (46), `.h2` (30), `.h3` (21).
@@ -250,6 +263,7 @@ Text auf farbigen Flächen ist immer `--ink` (dunkel). Weißer Text nur auf `--i
 ## 7. Regeln für Änderungen (Checkliste für die KI)
 
 1. **Jeder Nutzertext** in HTML-Strings durch `esc()`.
+1b. **Farben nur über Tokens**; Text auf Farbflächen `var(--on-color)`, auf `--bg`/`--card` `var(--ink)`. Neue Ansichten in Hell **und** Dunkel prüfen.
 2. **Deutsch**, Du-Form, kurze klare Sätze. Knöpfe sagen, was passiert („Speichern", „Auf die Liste").
 3. **Keine neuen Abhängigkeiten, kein Build-Schritt, kein Framework.** Nur Vanilla-JS-Module.
 4. **Mobil zuerst** (390 px Breite), Touch-Ziele ≥ 44 px.
@@ -283,7 +297,6 @@ Text auf farbigen Flächen ist immer `--ink` (dunkel). Weißer Text nur auf `--i
 **Ideen-Backlog** (mit betroffenen Stellen):
 | Idee | Betrifft |
 |---|---|
-| Dunkelmodus „Night Kitchen" (`#111214` Hintergrund, Karten `#1D1F24`, helle Konturen) | Tokens in `css/app.css` per `prefers-color-scheme` + Umschalter in `account.js` |
 | Gang eines Artikels ändern / Menge bearbeiten | `shopping.js` (Auswahl-Blatt wie in `planner.js`), `store.update` |
 | Rezept teilen (Text in Zwischenablage / `navigator.share`) | `recipe.js` |
 | Mehrere Listen (z. B. Drogerie) | neues Feld `liste` in `shopping`, Chips in `shopping.js` |
@@ -337,7 +350,7 @@ Finde die Ursache im Code, erkläre sie in 2 Sätzen, liefere die minimale Korre
 
 ### Beispiele
 - *Funktion:* „Auf der Einkaufsliste soll man durch langes Drücken oder einen Stift-Knopf Menge, Einheit und Gang eines Artikels ändern können. Bildschirm `#/liste`. Bearbeiten in einem Auswahl-Blatt wie im Wochenplan (`.sheet`). Daten: nur `update` auf `shopping`. Fertig, wenn Änderungen sofort auf allen Geräten erscheinen und im Demo-Modus funktionieren."
-- *Design:* „Füge einen Dunkelmodus ‚Night Kitchen' hinzu: folgt der Systemeinstellung, plus Umschalter im Konto. Nur Tokens ändern; Text auf Stickern bleibt dunkel. Werte: Hintergrund `#111214`, Karten `#1D1F24`, Text/Konturen `#F5F3EE`."
+- *Design:* „Mach die Rezeptkarten auf der Startseite größer (eine Spalte, Bild 160 px hoch) und den Titel in der Display-Schrift. Nur `.rcard` in css/app.css und library.js; in Hell und Dunkel prüfen."
 - *Fehler (erfundenes Beispiel):* „Wenn ich im Kochmodus den Timer starte und zur Liste wechsle, zeigt die Timer-Leiste 0:00. iPhone, Safari, Familien-Modus. Erwartet: Restzeit läuft weiter."
 
 ---

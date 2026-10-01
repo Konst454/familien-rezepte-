@@ -57,7 +57,7 @@ export function render(ctx) {
     <div class="hero" style="background:${colorValue(r.farbe)}">
       ${ribbon('M-20 60 C 60 10, 120 40, 110 120 S 190 260, 260 250', 390, 250, 'left:-20px;top:0', ['basilikum', 'salbei'].includes(r.farbe) ? 'var(--accent)' : 'var(--done)')}
       <span style="position:relative">${symbolSvg(r.symbol, 160)}</span>
-      ${(Number(r.vorbereitungMin) || 0) + (Number(r.kochMin) || 0) ? `<span class="stk tilt-r" style="top:18px;right:18px;background:var(--card)">${esc(minutesText((Number(r.vorbereitungMin) || 0) + (Number(r.kochMin) || 0)))}</span>` : ''}
+      ${(Number(r.vorbereitungMin) || 0) + (Number(r.kochMin) || 0) ? `<span class="stk tilt-r" style="top:18px;right:18px;background:var(--card);color:var(--ink)">${esc(minutesText((Number(r.vorbereitungMin) || 0) + (Number(r.kochMin) || 0)))}</span>` : ''}
       ${(r.tags || [])[0] ? `<span class="stk tilt-l" style="bottom:20px;right:26px;background:var(--done)">${esc(r.tags[0])}</span>` : ''}
     </div>
     <div style="display:flex;flex-direction:column;gap:10px">
@@ -82,7 +82,7 @@ export function render(ctx) {
     <div class="stepper"><span class="grow" style="font-weight:700">Portionen</span>
       <button type="button" class="icon-btn" style="background:var(--soft)" data-act="less" aria-label="Weniger Portionen">${icon('minus', 18, 2.6)}</button>
       <span class="n" aria-live="polite">${serves}</span>
-      <button type="button" class="icon-btn" style="background:var(--accent)" data-act="more" aria-label="Mehr Portionen">${icon('plus', 18, 2.6)}</button></div>
+      <button type="button" class="icon-btn" style="background:var(--accent);color:var(--on-color)" data-act="more" aria-label="Mehr Portionen">${icon('plus', 18, 2.6)}</button></div>
     <div class="checklist">${zutaten}</div>` : ''}
     ${schritte ? `<h2 class="h2" style="padding-top:8px">Zubereitung</h2><ol class="steps">${schritte}</ol>` : ''}
     ${r.notizen ? `<div class="note-card"><h3 class="h3">Notizen</h3><p>${esc(r.notizen)}</p></div>` : ''}
