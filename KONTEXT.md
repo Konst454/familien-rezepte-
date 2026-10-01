@@ -30,9 +30,9 @@ Navigation per Hash-Route. Untere Tab-Leiste: **Rezepte · Plan · Liste** + rot
 
 | Route | Datei | Inhalt |
 |---|---|---|
-| `#/rezepte` (Start) | `js/views/library.js` | Oben rechts **Hell/Dunkel-Schalter** (`.mode-switch`, role=switch) und Konto-Knopf; Titel „Rezepte", Suche (Titel, Stichworte, Zutaten), Chips: Alle / Favoriten / alle Stichworte; Karte „Heute · Abend" aus dem Wochenplan; Raster der Rezeptkarten (Farbe + Illustration). Leer: „Rezept eintragen" + „Beispiele laden". |
-| `#/rezept/:id` | `js/views/recipe.js` | Kopfbild (Farbe + Illustration + Sticker), Titel, „Eingetragen von", Stichworte, 3 Kacheln (Vorb., Kochen, Portionen); **Kochen starten**, **Einplanen** (→ `#/plan?add=:id`), **Auf die Liste** (skaliert); Portionen-Stepper (1–40) rechnet alle Mengen um; Zutaten zum Abhaken (nur lokal); Zubereitung mit **Zeit-Chips** („4 Minuten" → startet Timer); Notizen; Löschen mit zweitem Tippen zur Bestätigung. |
-| `#/neu`, `#/bearbeiten/:id` | `js/views/editor.js` | Formular: Titel*, Portionen, Vorb./Kochzeit (Min.), Zutaten (Textfeld, eine pro Zeile „200 g Mehl"), Zubereitung (ein Schritt pro Absatz), Stichworte (Komma), Notizen, Farbe (6), Bild (8 Illustrationen), Vorschau. **„Rezepttext einfügen und erkennen"**: kopierter Text → Titel, Portionen, Zutaten, Schritte. |
+| `#/rezepte` (Start) | `js/views/library.js` | Oben rechts **Hell/Dunkel-Schalter** (`.mode-switch`, role=switch) und Konto-Knopf; Titel „Rezepte", Suche (Titel, Stichworte, Zutaten), Chips: Alle / Favoriten / alle Stichworte; Karte „Heute · Abend" aus dem Wochenplan; Raster der Rezeptkarten (Foto-Vorschau, sonst Farbe + Illustration). Leer: „Rezept eintragen" + „Beispiele laden". |
+| `#/rezept/:id` | `js/views/recipe.js` | Kopfbild: **Foto** (füllt das Kopfbild, erst Vorschau, dann großes Bild live aus `rezeptfotos`; Tippen → Großansicht als Overlay, schließen per Tippen/X/Escape) oder Farbe + Illustration + Band; Sticker immer, Titel, „Eingetragen von", Stichworte, 3 Kacheln (Vorb., Kochen, Portionen); **Kochen starten**, **Einplanen** (→ `#/plan?add=:id`), **Auf die Liste** (skaliert); Portionen-Stepper (1–40) rechnet alle Mengen um; Zutaten zum Abhaken (nur lokal); Zubereitung mit **Zeit-Chips** („4 Minuten" → startet Timer); Notizen; Löschen mit zweitem Tippen zur Bestätigung. |
+| `#/neu`, `#/bearbeiten/:id` | `js/views/editor.js` | Formular: Titel*, Portionen, Vorb./Kochzeit (Min.), Zutaten (Textfeld, eine pro Zeile „200 g Mehl"), Zubereitung (ein Schritt pro Absatz), Stichworte (Komma), Notizen, Farbe (6), Bild (8 Illustrationen), **Foto** (Kamera/Galerie über verstecktes `<input type=file id=ed-foto>`; „Foto hinzufügen" / „Anderes Foto" / „Foto entfernen"; wird im Browser verkleinert), Vorschau (Foto oder Farbe + Bild). **„Rezepttext einfügen und erkennen"**: kopierter Text → Titel, Portionen, Zutaten, Schritte. |
 | `#/kochen/:id` | `js/views/cook.js` | Dunkler Vollbild-Kochmodus: Fortschrittsbalken, große Schrittnummer, Schritttext, „In diesem Schritt"-Zutaten (passend skaliert), Timer-Karte je erkannter Zeit (Start/Pause), Zurück/Weiter, **Wischen** links/rechts, Bildschirm bleibt an (Wake Lock). |
 | `#/timer` | `js/views/timers.js` | Alle Timer des Geräts: Ring-Fortschritt, Start/Pause, +1:00, Löschen; Schnellstart 1/5/10/15 Min.; eigener Timer (Name + Minuten). |
 | `#/plan` (`?add=:id`, `?wish=:id`) | `js/views/planner.js` | Jeder Eintrag hat **„Wer kocht?"** (Auswahl-Blatt mit Familienliste und „Niemand festgelegt"; danach Sticker „kocht: Name"). Woche (Mo–So) mit Punkten für geplante Tage, Wochen blättern; je Tag **Frühstück/Mittag/Abend**: Rezept wählen (Auswahl-Blatt mit Suche) oder Notiz; entfernen; **Füllen** (freie Abende automatisch, Favoriten zuerst, mit „Rückgängig"); **Woche auf die Einkaufsliste**. Mit `?add=:id`: Banner, Tipp auf einen Platz plant das Rezept ein. |
@@ -72,6 +72,7 @@ js/lib/parse.js          Zutaten/Artikel/Zeiten/Rezepttext aus Freitext lesen
 js/lib/aisles.js         Supermarkt-Gänge + Stichwort-Zuordnung
 js/lib/shop.js           addToList() (zusammenlegen), recipeItems()
 js/lib/family.js         familyMembers(ctx), saveFamily(ctx, namen) für einstellungen/familie
+js/lib/photo.js          Fotos verkleinern (Canvas → JPEG-Base64), makePhoto(), isPhotoData()
 js/lib/symbols.js        Rezeptfarben (6) und Illustrationen (8, SVG)
 js/lib/icons.js          Linien-Icons icon(name), PLAY/PAUSE, ribbon()
 js/views/*.js            Ein Modul pro Bildschirm (siehe Abschnitt 2), u. a. wishes.js (Wunschliste)
@@ -138,6 +139,7 @@ Live-Anzeigen: Elemente mit `data-tleft="<timerId>"` (Restzeit-Text) und `data-t
 ```js
 store.mode                         // 'demo' | 'firebase'
 store.subscribe(coll, rows => {})  // coll: 'recipes' | 'shopping' | 'plan' | 'wunschliste' | 'einstellungen'; liefert Array mit id
+store.subscribeDoc(coll, id, doc => {}) → abmelden  // ein Dokument ({id,…} oder null); Demo: immer null
 store.add(coll, value) → id
 store.set(coll, id, value)
 store.update(coll, id, patch)
@@ -160,8 +162,15 @@ Alles liegt unter `families/{familyId}/…` (`familyId` aus `firebase-config.js`
   schritte: [{ text: string }], notizen: string,
   farbe: 'tomate'|'basilikum'|'pfirsich'|'paprika'|'butter'|'salbei',
   symbol: 'schuessel'|'fisch'|'pfannkuchen'|'pfanne'|'brot'|'salat'|'kuchen'|'topf',
-  favorit: boolean, erstelltVon: string, geaendertAm: number /*ms*/ }
+  favorit: boolean, erstelltVon: string, geaendertAm: number /*ms*/,
+  vorschau?: string /* Foto klein: 'data:image/jpeg;base64,…', max. 320 px, ≤ 20 KB */ }
 ```
+
+**`rezeptfotos/{rezeptId}`** (großes Foto, gleiche ID wie das Rezept; nur Familien-Modus)
+```js
+{ bild: string /* 'data:image/jpeg;base64,…', max. 900 px, ≤ 300 KB */, geaendertAm: number }
+```
+Fotos liegen bewusst als Text in Firestore (kein Firebase Storage → Gratistarif). Neues Foto: **ein** `batch` schreibt `recipes/<id>` + `rezeptfotos/<id>`; Foto entfernen bzw. Rezept löschen entfernt beide. Im Demo-Modus wird nur `vorschau` gespeichert. Alles aus der Datenbank vor dem Anzeigen mit `isPhotoData()` prüfen und trotzdem `esc()` im `src`.
 
 **`shopping/{id}`**
 ```js
@@ -190,7 +199,7 @@ Einträge ohne `rezeptId` sind Notizen. `wunschId` verweist auf den eingeplanten
 **Timer** liegen **nicht** in Firestore, sondern pro Gerät in `localStorage['cr-timers']`.
 
 ### Zugriffsschutz (`firestore.rules`)
-Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Liste steht, und nur für die Sammlungen `recipes`, `shopping`, `plan`, `wunschliste`, `einstellungen`.
+Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Liste steht, und nur für die Sammlungen `recipes`, `shopping`, `plan`, `wunschliste`, `einstellungen`, `rezeptfotos`.
 **Neue Sammlung** ⇒ an allen Stellen anlegen (`app.js` state/loaded/subscribe, `store-local.js` COLLS – alte Demo-Daten werden dort automatisch ergänzt) und in den Regeln ergänzen **und** in der Firebase-Konsole veröffentlichen, sonst „permission-denied". Die echten Familien-E-Mails stehen nur in der Konsole, nie im Repo.
 
 ---
@@ -211,6 +220,7 @@ Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Li
 | `parseItem("2 limetten")` | parse.js | Einkaufsartikel, Großschreibung |
 | `AISLES`, `guessAisle(name, einheit)`, `aisleName(key)` | aisles.js | Gänge und Stichwortlisten (erweiterbar) |
 | `addToList(ctx, items)`, `recipeItems(rezept, faktor)` | shop.js | Artikel hinzufügen mit Zusammenlegen |
+| `makePhoto(file)` → `{vorschau, bild}`, `shrinkImage(file, {maxSide, quality, maxBytes})`, `isPhotoData(s)` | photo.js | Foto einlesen (EXIF-Drehung), verkleinern: Qualität 0,7 → 0,4, dann kleinere Kantenlänge |
 | `COLORS`, `colorValue(key)`, `SYMBOLS`, `symbolSvg(key, size)` | symbols.js | Rezeptfarben und Illustrationen |
 | `icon(name, size, strichstärke)`, `PLAY`, `PAUSE`, `ribbon(d, w, h, style, color)` | icons.js | Icons: book, calendar, cart, plus, minus, search, back, next, x, heart, edit, check, clock, user, sparkle, trash, text, share, sun, fork, logout, list |
 
@@ -303,7 +313,7 @@ Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Li
 
 **Bewusste Grenzen (v1):**
 - Kein Import per Link (Rezeptseiten abrufen braucht einen Server wegen CORS) → „Rezepttext einfügen".
-- Keine Fotos (Firebase Storage nur im Bezahltarif „Blaze").
+- Fotos nur verkleinert als Text in Firestore (kein Firebase Storage, das braucht den Bezahltarif „Blaze"). Grob 3.000 Fotos passen in 1 GiB Gratis-Speicher.
 - Timer klingeln nur bei geöffneter App (Push auf iOS bräuchte Server).
 - Keine Sprachsteuerung im Kochmodus.
 

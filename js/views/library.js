@@ -2,6 +2,7 @@
 import { esc, isoDate, minutesText } from '../lib/format.js';
 import { icon, ribbon } from '../lib/icons.js';
 import { colorValue, symbolSvg } from '../lib/symbols.js';
+import { isPhotoData } from '../lib/photo.js';
 import { EXAMPLES } from '../examples.js';
 import { effectiveTheme, toggleTheme } from '../theme.js';
 
@@ -19,7 +20,7 @@ function card(r) {
   const total = (Number(r.vorbereitungMin) || 0) + (Number(r.kochMin) || 0);
   const meta = [total ? minutesText(total) : '', r.portionen ? r.portionen + ' Portionen' : ''].filter(Boolean).join(' · ');
   return `<a class="rcard" href="#/rezept/${encodeURIComponent(r.id)}">
-    <div class="img" style="background:${colorValue(r.farbe)}">${r.favorit ? '<span class="stk">Favorit</span>' : ''}${symbolSvg(r.symbol, 76)}</div>
+    <div class="img" style="background:${colorValue(r.farbe)}">${isPhotoData(r.vorschau) ? `<img src="${esc(r.vorschau)}" alt="Foto von ${esc(r.titel)}" loading="lazy">` : symbolSvg(r.symbol, 76)}${r.favorit ? '<span class="stk">Favorit</span>' : ''}</div>
     <div class="cap"><b>${esc(r.titel)}</b><span>${esc(meta)}</span></div></a>`;
 }
 

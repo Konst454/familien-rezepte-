@@ -50,6 +50,11 @@ export function createLocalStore() {
       setTimeout(() => fn(arr(coll)), 0);
       return () => subs[coll].delete(fn);
     },
+    // Große Fotos (rezeptfotos) gibt es im Demo-Modus nicht: immer null.
+    subscribeDoc(coll, id, fn) {
+      const t = setTimeout(() => fn(null), 0);
+      return () => clearTimeout(t);
+    },
     async add(coll, value) {
       const id = uid();
       data[coll][id] = value;
@@ -72,6 +77,7 @@ export function createLocalStore() {
     async batch(ops) {
       const touched = new Set();
       for (const op of ops) {
+        if (!data[op.coll]) continue; // unbekannte Sammlung (z. B. rezeptfotos) ignorieren
         touched.add(op.coll);
         if (op.type === 'add') data[op.coll][uid()] = op.value;
         else if (op.type === 'set') data[op.coll][op.id] = op.value;

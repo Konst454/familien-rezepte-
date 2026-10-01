@@ -4,9 +4,44 @@ import { icon, ribbon } from '../lib/icons.js';
 import { colorValue, symbolSvg } from '../lib/symbols.js';
 import { detectTimes } from '../lib/parse.js';
 import { addToList, recipeItems } from '../lib/shop.js';
+import { isPhotoData } from '../lib/photo.js';
 
 export const id = 'recipe';
 export const tabs = false;
+
+let stopFoto = null;
+let onKey = null;
+
+// Großes Foto live nachladen (rezeptfotos/<id>); bis dahin zeigt die Vorschau aus dem Rezept.
+export function mount(ctx) {
+  const rid = ctx.route.params[0];
+  ctx.ui.fotos = ctx.ui.fotos || {};
+  ctx.ui.fotoOpen = null;
+  if (rid && ctx.store.subscribeDoc) {
+    stopFoto = ctx.store.subscribeDoc('rezeptfotos', rid, (doc) => {
+      const bild = doc && isPhotoData(doc.bild) ? doc.bild : null;
+      if ((ctx.ui.fotos[rid] || null) === bild) return;
+      ctx.ui.fotos[rid] = bild;
+      ctx.rerender();
+    });
+  }
+  onKey = (e) => { if (e.key === 'Escape' && ctx.ui.fotoOpen) { ctx.ui.fotoOpen = null; ctx.rerender(); } };
+  document.addEventListener('keydown', onKey);
+}
+
+export function unmount(ctx) {
+  if (stopFoto) stopFoto();
+  stopFoto = null;
+  if (onKey) document.removeEventListener('keydown', onKey);
+  onKey = null;
+  ctx.ui.fotoOpen = null;
+}
+
+function photoOf(ctx, r) {
+  const big = ctx.ui.fotos && ctx.ui.fotos[r.id];
+  if (big) return big;
+  return isPhotoData(r.vorschau) ? r.vorschau : null;
+}
 
 function servingsOf(ctx, r) {
   ctx.ui.servings = ctx.ui.servings || {};
@@ -46,6 +81,24 @@ export function render(ctx) {
   }).join('');
   const schritte = (r.schritte || []).map((s, i) => `<li><span class="num">${i + 1}</span><p>${stepHtml(s.text, r, i)}</p></li>`).join('');
   const del = ctx.ui.confirmDelete === r.id;
+  const foto = photoOf(ctx, r);
+  const alt = `Foto von ${esc(r.titel)}`;
+  const total = (Number(r.vorbereitungMin) || 0) + (Number(r.kochMin) || 0);
+  const stickers = `${total ? `<span class="stk tilt-r" style="top:18px;right:18px;background:var(--card);color:var(--ink)">${esc(minutesText(total))}</span>` : ''}
+      ${(r.tags || [])[0] ? `<span class="stk tilt-l" style="bottom:20px;right:26px;background:var(--done)">${esc(r.tags[0])}</span>` : ''}`;
+  const hero = foto
+    ? `<button type="button" class="hero photo" style="background:${colorValue(r.farbe)}" data-act="fotoOpen" aria-label="Foto groß anzeigen">
+      <img src="${esc(foto)}" alt="${alt}">${stickers}</button>`
+    : `<div class="hero" style="background:${colorValue(r.farbe)}">
+      ${ribbon('M-20 60 C 60 10, 120 40, 110 120 S 190 260, 260 250', 390, 250, 'left:-20px;top:0', ['basilikum', 'salbei'].includes(r.farbe) ? 'var(--accent)' : 'var(--done)')}
+      <span style="position:relative">${symbolSvg(r.symbol, 160)}</span>
+      ${stickers}
+    </div>`;
+  const overlay = foto && ctx.ui.fotoOpen === r.id
+    ? `<div class="sheet-bg photo-view" data-act="fotoClose" role="dialog" aria-modal="true" aria-label="${alt}">
+      <img src="${esc(foto)}" alt="${alt}">
+      <button type="button" class="icon-btn" data-act="fotoClose" aria-label="Foto schließen">${icon('x', 20, 2.4)}</button></div>`
+    : '';
 
   return `<main class="screen no-tabs">
     <div class="row">
@@ -54,12 +107,7 @@ export function render(ctx) {
       <button type="button" class="icon-btn ${r.favorit ? 'on' : ''}" data-act="fav" aria-pressed="${!!r.favorit}" aria-label="Favorit">${icon('heart')}</button>
       <a class="icon-btn" href="#/bearbeiten/${encodeURIComponent(r.id)}" aria-label="Rezept bearbeiten">${icon('edit')}</a>
     </div>
-    <div class="hero" style="background:${colorValue(r.farbe)}">
-      ${ribbon('M-20 60 C 60 10, 120 40, 110 120 S 190 260, 260 250', 390, 250, 'left:-20px;top:0', ['basilikum', 'salbei'].includes(r.farbe) ? 'var(--accent)' : 'var(--done)')}
-      <span style="position:relative">${symbolSvg(r.symbol, 160)}</span>
-      ${(Number(r.vorbereitungMin) || 0) + (Number(r.kochMin) || 0) ? `<span class="stk tilt-r" style="top:18px;right:18px;background:var(--card);color:var(--ink)">${esc(minutesText((Number(r.vorbereitungMin) || 0) + (Number(r.kochMin) || 0)))}</span>` : ''}
-      ${(r.tags || [])[0] ? `<span class="stk tilt-l" style="bottom:20px;right:26px;background:var(--done)">${esc(r.tags[0])}</span>` : ''}
-    </div>
+    ${hero}
     <div style="display:flex;flex-direction:column;gap:10px">
       <h1 class="h1">${esc(r.titel)}</h1>
       ${r.erstelltVon ? `<p class="muted small" style="margin:0">Eingetragen von ${esc(r.erstelltVon)}</p>` : ''}
@@ -87,6 +135,7 @@ export function render(ctx) {
     ${schritte ? `<h2 class="h2" style="padding-top:8px">Zubereitung</h2><ol class="steps">${schritte}</ol>` : ''}
     ${r.notizen ? `<div class="note-card"><h3 class="h3">Notizen</h3><p>${esc(r.notizen)}</p></div>` : ''}
     <button type="button" class="btn danger ${del ? 'confirm' : ''}" data-act="del">${icon('trash', 18)}${del ? 'Wirklich löschen? Nochmal tippen' : 'Rezept löschen'}</button>
+    ${overlay}
   </main>`;
 }
 
@@ -97,6 +146,11 @@ export const actions = {
     const r = current(ctx);
     const c = (ctx.ui.checked[r.id] = ctx.ui.checked[r.id] || {});
     c[el.dataset.i] = !c[el.dataset.i];
+    ctx.rerender();
+  },
+  fotoOpen(ctx) { ctx.ui.fotoOpen = current(ctx).id; ctx.rerender(); },
+  fotoClose(ctx) {
+    ctx.ui.fotoOpen = null;
     ctx.rerender();
   },
   less(ctx) { const r = current(ctx); ctx.ui.servings[r.id] = Math.max(1, servingsOf(ctx, r) - 1); ctx.rerender(); },
@@ -119,7 +173,10 @@ export const actions = {
     const r = current(ctx);
     if (ctx.ui.confirmDelete !== r.id) { ctx.ui.confirmDelete = r.id; ctx.rerender(); return; }
     ctx.ui.confirmDelete = null;
-    ctx.save(ctx.store.remove('recipes', r.id));
+    // Großes Foto mitlöschen (gibt es nur in der Familien-Version).
+    if (ctx.store.mode === 'demo') ctx.save(ctx.store.remove('recipes', r.id));
+    else ctx.save(ctx.store.batch([{ type: 'remove', coll: 'recipes', id: r.id }, { type: 'remove', coll: 'rezeptfotos', id: r.id }]));
+    if (ctx.ui.fotos) delete ctx.ui.fotos[r.id];
     ctx.toast(`„${r.titel}" gelöscht`);
     ctx.go('#/rezepte');
   }

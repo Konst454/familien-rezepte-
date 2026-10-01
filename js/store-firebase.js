@@ -58,6 +58,12 @@ export async function createFirebaseStore(config) {
         else console.error('Firestore', err);
       });
     },
+    // Ein einzelnes Dokument beobachten (z. B. rezeptfotos/<rezept-id>); fn bekommt {id, …} oder null.
+    subscribeDoc(coll, id, fn) {
+      return fs.onSnapshot(ref(coll, id), (snap) => {
+        fn(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+      }, (err) => { console.error('Firestore', coll, err); });
+    },
     async add(coll, value) {
       const r = await fs.addDoc(path(coll), value);
       return r.id;
