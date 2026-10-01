@@ -3,6 +3,7 @@ import { esc, isoDate, startOfWeek, addDays, shortDate, WEEKDAYS } from '../lib/
 import { icon } from '../lib/icons.js';
 import { colorValue, symbolSvg } from '../lib/symbols.js';
 import { addToList, recipeItems } from '../lib/shop.js';
+import { familyMembers } from '../lib/family.js';
 
 export const id = 'planner';
 const SLOTS = ['Frühstück', 'Mittag', 'Abend'];
@@ -43,17 +44,51 @@ function planWish(ctx, w, date, slot) {
   ctx.save(ctx.store.update('wunschliste', w.id, { geplantAm: isoDate(date) }));
 }
 
+// „Wer kocht?": Knopf oder Sticker mit dem Namen, öffnet das Auswahl-Blatt.
+function cookHtml(m, i, key) {
+  const name = m.kocht ?? '';
+  const title = m.titel || 'Notiz';
+  if (name) {
+    return `<button type="button" class="cook-pick" data-act="openCook" data-date="${key}" data-i="${i}" aria-label="Koch für ${esc(title)} ändern, jetzt: ${esc(name)}"><span class="stk" style="background:var(--done)">${icon('user', 14, 2.4)}kocht: ${esc(name)}</span></button>`;
+  }
+  return `<button type="button" class="btn small cook-ask" data-act="openCook" data-date="${key}" data-i="${i}" aria-label="Wer kocht ${esc(title)}?">${icon('user', 16)}Wer kocht?</button>`;
+}
+
 function mealHtml(ctx, m, i, key) {
   const r = m.rezeptId ? ctx.recipe(m.rezeptId) : null;
   const del = `<button type="button" class="x" data-act="removeMeal" data-date="${key}" data-i="${i}" aria-label="${esc(m.titel)} entfernen">${icon('x', 18, 2.4)}</button>`;
   if (r) {
-    return `<div class="meal"><a class="row grow" href="#/rezept/${encodeURIComponent(r.id)}" style="gap:12px">
+    return `<div class="meal"><div class="grow meal-body"><a class="row" href="#/rezept/${encodeURIComponent(r.id)}" style="gap:12px">
       <span class="sq" style="background:${colorValue(r.farbe)}">${symbolSvg(r.symbol, 36)}</span>
       <span class="grow" style="display:flex;flex-direction:column;gap:2px"><b style="font-size:16px;line-height:1.2">${esc(r.titel)}</b>
-      ${m.von ? `<span class="small muted">geplant von ${esc(m.von)}</span>` : ''}</span></a>${del}</div>`;
+      ${m.von ? `<span class="small muted">geplant von ${esc(m.von)}</span>` : ''}</span></a>
+      <div class="meal-cook">${cookHtml(m, i, key)}</div></div>${del}</div>`;
   }
-  return `<div class="meal note"><span class="sq" style="border-style:dashed">${icon('edit', 20)}</span>
-    <span class="grow" style="display:flex;flex-direction:column;gap:2px"><b style="font-size:16px">${esc(m.titel || 'Notiz')}</b>${m.rezeptId ? '<span class="small muted">Rezept wurde gelöscht</span>' : ''}</span>${del}</div>`;
+  return `<div class="meal note"><div class="grow meal-body"><div class="row" style="gap:12px"><span class="sq" style="border-style:dashed">${icon('edit', 20)}</span>
+    <span class="grow" style="display:flex;flex-direction:column;gap:2px"><b style="font-size:16px">${esc(m.titel || 'Notiz')}</b>${m.rezeptId ? '<span class="small muted">Rezept wurde gelöscht</span>' : ''}</span></div>
+    <div class="meal-cook">${cookHtml(m, i, key)}</div></div>${del}</div>`;
+}
+
+function cookSheetHtml(ctx) {
+  const cs = ctx.ui.cookSheet;
+  if (!cs) return '';
+  const m = mealsOf(ctx, new Date(cs.date + 'T12:00:00'))[cs.i];
+  if (!m) return '';
+  const current = m.kocht ?? '';
+  const members = familyMembers(ctx);
+  const check = (on) => (on ? icon('check', 18, 2.6) : '');
+  const picks = members.map((n, k) =>
+    `<button type="button" class="pick" data-act="pickCook" data-k="${k}" aria-pressed="${n === current}"><span class="sq" style="background:var(--done);color:var(--on-color)">${icon('user', 20)}</span><b class="grow">${esc(n)}</b>${check(n === current)}</button>`).join('');
+  const body = members.length
+    ? `${picks}<button type="button" class="pick" data-act="pickCook" data-k="-1" aria-pressed="${!current}"><span class="sq" style="border-style:dashed">${icon('x', 18)}</span><b class="grow">Niemand festgelegt</b>${check(!current)}</button>`
+    : `<div class="empty" style="padding:18px"><p style="margin:0;line-height:1.45">Noch niemand in der Familienliste. Trag zuerst ein, wer bei euch kocht.</p>
+        <a class="btn small" style="height:44px" href="#/konto">${icon('user', 16)}Familie im Konto eintragen</a></div>
+       ${current ? `<button type="button" class="pick" data-act="pickCook" data-k="-1"><span class="sq" style="border-style:dashed">${icon('x', 18)}</span><b class="grow">Niemand festgelegt</b></button>` : ''}`;
+  return `<div class="sheet-bg" data-act="closeSheet"><div class="sheet" role="dialog" aria-modal="true" aria-label="Wer kocht?" data-act="noop">
+    <div class="row between"><h2 class="h3" style="overflow-wrap:anywhere">Wer kocht ${esc(m.titel || 'das')}?</h2>
+      <button type="button" class="icon-btn" data-act="closeSheet" aria-label="Schließen">${icon('x')}</button></div>
+    <div style="display:flex;flex-direction:column;gap:8px">${body}</div>
+  </div></div>`;
 }
 
 function sheetHtml(ctx) {
@@ -124,6 +159,7 @@ export function render(ctx) {
     ${weekRecipes.length ? `<button type="button" class="tonight" style="text-align:left;width:100%;cursor:pointer" data-act="weekToList">
       ${icon('cart', 22)}<span class="grow" style="display:flex;flex-direction:column"><b style="font-size:15px">Woche auf die Einkaufsliste</b><span class="small">Zutaten aus ${weekRecipes.length} geplanten Rezepten</span></span>${icon('next', 18, 2.4)}</button>` : ''}
     ${sheetHtml(ctx)}
+    ${cookSheetHtml(ctx)}
   </main>`;
 }
 
@@ -156,7 +192,26 @@ export const actions = {
   },
   closeSheet(ctx, el, ev) {
     if (el.classList.contains('sheet-bg') && ev.target !== el) return;
-    ctx.ui.planSheet = null; ctx.rerender();
+    ctx.ui.planSheet = null; ctx.ui.cookSheet = null; ctx.rerender();
+  },
+  openCook(ctx, el) {
+    ctx.ui.cookSheet = { date: el.dataset.date, i: Number(el.dataset.i) };
+    ctx.rerender();
+  },
+  pickCook(ctx, el) {
+    const cs = ctx.ui.cookSheet;
+    if (!cs) return;
+    const date = new Date(cs.date + 'T12:00:00');
+    const meals = mealsOf(ctx, date).map((m) => ({ ...m }));
+    const m = meals[cs.i];
+    if (m) {
+      const k = Number(el.dataset.k);
+      const name = k >= 0 ? familyMembers(ctx)[k] : '';
+      if (name) m.kocht = name; else delete m.kocht;
+      saveMeals(ctx, date, meals);
+    }
+    ctx.ui.cookSheet = null;
+    ctx.rerender();
   },
   planQuery(ctx, el) {
     ctx.ui.planQuery = el.value;

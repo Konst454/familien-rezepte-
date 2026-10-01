@@ -2,8 +2,35 @@
 import { esc } from '../lib/format.js';
 import { icon } from '../lib/icons.js';
 import { getTheme, setTheme } from '../theme.js';
+import { familyMembers, saveFamily, MAX_MEMBERS, MAX_NAME } from '../lib/family.js';
 
 export const id = 'account';
+
+function familyHtml(ctx, demo) {
+  const members = familyMembers(ctx);
+  const me = demo ? '' : ctx.userName();
+  const tags = members.map((n, k) => `<span class="tag fam-tag">${esc(n)}<button type="button" class="fam-x" data-act="famRemove" data-k="${k}" aria-label="${esc(n)} entfernen">${icon('x', 16, 2.6)}</button></span>`).join('');
+  return `<section class="card" style="padding:18px;display:flex;flex-direction:column;gap:12px" aria-labelledby="fam-h">
+    <h2 class="h3" id="fam-h">Familie</h2>
+    ${members.length ? `<div class="tags">${tags}</div>` : `<p class="hint" style="margin:0">Trag hier alle ein, die kochen – auch Kinder ohne eigenes Konto.</p>
+      ${me ? `<button type="button" class="btn small" style="align-self:flex-start;height:44px" data-act="famMe">${icon('user', 16)}Mich hinzufügen (${esc(me)})</button>` : ''}`}
+    ${members.length < MAX_MEMBERS ? `<form class="row" data-submit="famAdd">
+      <label class="grow" for="fam-name"><span class="sr-only">Name hinzufügen</span><input id="fam-name" class="input pill" type="text" maxlength="${MAX_NAME}" autocomplete="off" placeholder="Name hinzufügen"></label>
+      <button type="submit" class="icon-btn" style="width:50px;height:50px;background:var(--ink);color:var(--on-ink)" aria-label="Name hinzufügen">${icon('plus', 22, 2.6)}</button>
+    </form>` : '<p class="hint" style="margin:0">Höchstens 12 Namen.</p>'}
+    <p class="hint" style="margin:0">Gilt für alle Geräte. Im Wochenplan wählst du bei jedem Gericht, wer kocht.</p>
+  </section>`;
+}
+
+function addMember(ctx, raw) {
+  const name = String(raw || '').trim().replace(/\s+/g, ' ').slice(0, MAX_NAME);
+  if (!name) return false;
+  const members = familyMembers(ctx);
+  if (members.some((n) => n.toLowerCase() === name.toLowerCase())) { ctx.toast(`„${name}" steht schon in der Liste`); return false; }
+  if (members.length >= MAX_MEMBERS) { ctx.toast('Höchstens 12 Namen'); return false; }
+  saveFamily(ctx, [...members, name]);
+  return true;
+}
 
 export function render(ctx) {
   const u = ctx.state.user || {};
@@ -18,6 +45,7 @@ export function render(ctx) {
       ${!demo && u.email ? `<span class="muted">${esc(u.email)}</span>` : ''}
       ${demo ? '<p class="hint" style="margin:6px 0 0">Die Daten liegen nur in diesem Browser. Sobald die Firebase-Konfiguration eingetragen ist, teilt die ganze Familie Rezepte, Plan und Einkaufsliste.</p>' : ''}
     </div>
+    ${familyHtml(ctx, demo)}
     <section class="card" style="padding:18px;display:flex;flex-direction:column;gap:10px" aria-labelledby="theme-h">
       <h2 class="h3" id="theme-h">Darstellung</h2>
       <div class="seg" role="group" aria-label="Darstellung" style="align-self:flex-start">
@@ -27,7 +55,7 @@ export function render(ctx) {
     </section>
     ${standalone ? '' : `<div class="note-card" style="transform:none"><h2 class="h3">Als App auf den Home-Bildschirm</h2>
       <p><b>iPhone/iPad (Safari):</b> unten auf Teilen ${icon('share', 16)} tippen, dann „Zum Home-Bildschirm".<br><b>Android (Chrome):</b> Menü ⋮ oben rechts, dann „App installieren" oder „Zum Startbildschirm hinzufügen".</p></div>`}
-    <div class="btns" style="flex-direction:column">
+    <div style="display:flex;flex-direction:column;gap:10px">
       <a class="btn block" href="#/wuensche">${icon('heart', 18)}Wunschliste</a>
       <a class="btn block" href="#/timer">${icon('clock', 18)}Timer</a>
       ${demo ? '<button type="button" class="btn block" data-act="reset">Demo zurücksetzen</button>' : `<button type="button" class="btn block" data-act="logout">${icon('logout', 18)}Abmelden</button>`}
@@ -37,6 +65,25 @@ export function render(ctx) {
 }
 
 export const actions = {
+  famAdd(ctx) {
+    const input = document.getElementById('fam-name');
+    const value = input.value;
+    if (!value.trim()) { input.focus(); return; }
+    // Erst leeren, dann speichern: das Speichern zeichnet die Seite neu.
+    input.value = '';
+    if (!addMember(ctx, value)) { const again = document.getElementById('fam-name'); if (again) again.value = value; }
+    const field = document.getElementById('fam-name');
+    if (field) field.focus();
+  },
+  famMe(ctx) { addMember(ctx, ctx.userName()); },
+  famRemove(ctx, el) {
+    const members = familyMembers(ctx);
+    const k = Number(el.dataset.k);
+    const name = members[k];
+    if (name === undefined) return;
+    saveFamily(ctx, members.filter((_, i) => i !== k));
+    ctx.toast(`${name} entfernt`, { action: { label: 'Rückgängig', fn: () => saveFamily(ctx, familyMembers(ctx).some((n) => n === name) ? familyMembers(ctx) : [...familyMembers(ctx), name]) } });
+  },
   theme(ctx, el) { setTheme(el.dataset.mode); },
   async logout(ctx) { await ctx.store.signOut(); ctx.go('#/rezepte'); },
   reset(ctx) {

@@ -25,8 +25,8 @@ const toastBox = document.getElementById('toasts');
 
 const state = {
   store: null, user: null, denied: false,
-  recipes: [], shopping: [], plan: {}, wunschliste: [],
-  loaded: { recipes: false, shopping: false, plan: false, wunschliste: false },
+  recipes: [], shopping: [], plan: {}, wunschliste: [], einstellungen: {},
+  loaded: { recipes: false, shopping: false, plan: false, wunschliste: false, einstellungen: false },
   ui: {}
 };
 
@@ -245,6 +245,11 @@ async function start() {
       unsubs.push(state.store.subscribe('wunschliste', (rows) => {
         state.wunschliste = rows.sort((a, b) => (a.erstelltAm || 0) - (b.erstelltAm || 0));
         state.loaded.wunschliste = true; render();
+      }));
+      unsubs.push(state.store.subscribe('einstellungen', (rows) => {
+        state.einstellungen = {};
+        rows.forEach((r) => { state.einstellungen[r.id] = r; });
+        state.loaded.einstellungen = true; render();
       }));
     }
     render();

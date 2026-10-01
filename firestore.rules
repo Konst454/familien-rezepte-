@@ -15,7 +15,7 @@ service cloud.firestore {
     }
 
     match /families/{family}/{coll}/{docId} {
-      allow read, write: if isFamily() && coll in ['recipes', 'shopping', 'plan', 'wunschliste'];
+      allow read, write: if isFamily() && coll in ['recipes', 'shopping', 'plan', 'wunschliste', 'einstellungen'];
     }
   }
 }

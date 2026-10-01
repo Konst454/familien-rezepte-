@@ -54,7 +54,7 @@ export function render(ctx) {
   const tr = tonight && ctx.recipe(tonight.rezeptId);
   const tonightHtml = tr ? `<a class="tonight" href="#/rezept/${encodeURIComponent(tr.id)}">
       <span class="ic" style="background:${colorValue(tr.farbe)}">${symbolSvg(tr.symbol, 46)}</span>
-      <span class="grow" style="display:flex;flex-direction:column;gap:2px"><span class="label">Heute · ${esc(tonight.slot)}</span><span class="t">${esc(tr.titel)}</span></span>
+      <span class="grow" style="display:flex;flex-direction:column;gap:2px"><span class="label">Heute · ${esc(tonight.slot)}</span><span class="t">${esc(tr.titel)}</span>${tonight.kocht ? `<span class="small" style="font-weight:700">kocht ${esc(tonight.kocht)}</span>` : ''}</span>
       <span class="go">${icon('next', 20, 2.4)}</span></a>` : '';
 
   let body;

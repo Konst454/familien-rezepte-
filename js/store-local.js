@@ -4,12 +4,12 @@ import { uid } from './lib/format.js';
 import { EXAMPLES } from './examples.js';
 
 const KEY = 'cr-demo-data';
-const COLLS = ['recipes', 'shopping', 'plan', 'wunschliste'];
+const COLLS = ['recipes', 'shopping', 'plan', 'wunschliste', 'einstellungen'];
 
 export function createLocalStore() {
   let data = read();
   if (!data) {
-    data = { recipes: {}, shopping: {}, plan: {}, wunschliste: {} };
+    data = { recipes: {}, shopping: {}, plan: {}, wunschliste: {}, einstellungen: {} };
     const now = Date.now();
     EXAMPLES.forEach((r, i) => { data.recipes['bsp' + i] = { ...r, beispiel: true, erstelltVon: 'Demo', geaendertAm: now - i }; });
     write(data);

@@ -35,10 +35,10 @@ Navigation per Hash-Route. Untere Tab-Leiste: **Rezepte · Plan · Liste** + rot
 | `#/neu`, `#/bearbeiten/:id` | `js/views/editor.js` | Formular: Titel*, Portionen, Vorb./Kochzeit (Min.), Zutaten (Textfeld, eine pro Zeile „200 g Mehl"), Zubereitung (ein Schritt pro Absatz), Stichworte (Komma), Notizen, Farbe (6), Bild (8 Illustrationen), Vorschau. **„Rezepttext einfügen und erkennen"**: kopierter Text → Titel, Portionen, Zutaten, Schritte. |
 | `#/kochen/:id` | `js/views/cook.js` | Dunkler Vollbild-Kochmodus: Fortschrittsbalken, große Schrittnummer, Schritttext, „In diesem Schritt"-Zutaten (passend skaliert), Timer-Karte je erkannter Zeit (Start/Pause), Zurück/Weiter, **Wischen** links/rechts, Bildschirm bleibt an (Wake Lock). |
 | `#/timer` | `js/views/timers.js` | Alle Timer des Geräts: Ring-Fortschritt, Start/Pause, +1:00, Löschen; Schnellstart 1/5/10/15 Min.; eigener Timer (Name + Minuten). |
-| `#/plan` (`?add=:id`, `?wish=:id`) | `js/views/planner.js` | Woche (Mo–So) mit Punkten für geplante Tage, Wochen blättern; je Tag **Frühstück/Mittag/Abend**: Rezept wählen (Auswahl-Blatt mit Suche) oder Notiz; entfernen; **Füllen** (freie Abende automatisch, Favoriten zuerst, mit „Rückgängig"); **Woche auf die Einkaufsliste**. Mit `?add=:id`: Banner, Tipp auf einen Platz plant das Rezept ein. |
+| `#/plan` (`?add=:id`, `?wish=:id`) | `js/views/planner.js` | Jeder Eintrag hat **„Wer kocht?"** (Auswahl-Blatt mit Familienliste und „Niemand festgelegt"; danach Sticker „kocht: Name"). Woche (Mo–So) mit Punkten für geplante Tage, Wochen blättern; je Tag **Frühstück/Mittag/Abend**: Rezept wählen (Auswahl-Blatt mit Suche) oder Notiz; entfernen; **Füllen** (freie Abende automatisch, Favoriten zuerst, mit „Rückgängig"); **Woche auf die Einkaufsliste**. Mit `?add=:id`: Banner, Tipp auf einen Platz plant das Rezept ein. |
 | `#/liste` | `js/views/shopping.js` | „N offen"; Eingabe „2 Limetten" (Menge/Einheit erkannt); Artikel nach **Gängen** gruppiert (Obst & Gemüse, Brot & Backwaren, Kühlregal, Fleisch & Fisch, Vorrat, Tiefkühl, Getränke, Haushalt, Sonstiges); Zeile zeigt „für <Rezept> · von <Person>" und Menge; Abhaken → Bereich „Erledigt"; „Erledigte entfernen" mit Bestätigung. Gleiche Artikel (Name + Einheit) werden **zusammengelegt** und Mengen addiert. |
 | `#/wuensche` | `js/views/wishes.js` | **Wunschliste**: Formular „Was wünschst du dir?" + „Wunsch von" (für Kinder ohne Konto; Demo: leer, sonst Anmeldename; zuletzt benutzter Name bleibt); Bereiche „Offen" (Knopf **Einplanen** → `#/plan?wish=:id`, löschen mit „Rückgängig") und „Eingeplant" (Sticker „Geplant · Wochentag, Datum"). Im Plan: Karte „Wunschliste · N offen" und Abschnitt „Wünsche" im Auswahl-Blatt. Passt ein Wunsch genau auf einen Rezepttitel, wird er als Rezept eingeplant, sonst als Notiz. Planeintrag entfernen → Wunsch wieder offen. |
-| `#/konto` | `js/views/account.js` | Name/E-Mail bzw. „Demo-Modus", **Darstellung** (Automatisch / Hell / Dunkel, pro Gerät), Anleitung „Zum Home-Bildschirm" (nur wenn nicht installiert), Timer-Link, Abmelden bzw. „Demo zurücksetzen". |
+| `#/konto` | `js/views/account.js` | Name/E-Mail bzw. „Demo-Modus", **Familie** (Namen als Pillen mit x, „Name hinzufügen", max. 12 × 30 Zeichen, keine Dubletten; leer: „Mich hinzufügen (Name)", nicht im Demo-Modus), **Darstellung** (Automatisch / Hell / Dunkel, pro Gerät), Anleitung „Zum Home-Bildschirm" (nur wenn nicht installiert), Timer-Link, Abmelden bzw. „Demo zurücksetzen". |
 | (Anmeldung) | `js/views/login.js` | Nur im Familien-Modus ohne Anmeldung: Google-Knopf, E-Mail anmelden/Konto erstellen, Passwort vergessen. Danach ggf. **„Bitte E-Mail bestätigen"** oder **„Noch nicht freigeschaltet"** (E-Mail nicht in den Regeln). |
 
 **Global:** Meldungen oben (Toasts, optional mit Aktionsknopf); kleine **Timer-Leiste** über der Tab-Leiste, wenn ein Timer existiert; fertiger Timer → Ton + Vibration + rote Meldung „Timer „X" ist fertig" mit „Aus".
@@ -71,6 +71,7 @@ js/lib/format.js         esc(), Mengen formatieren, Zeiten, Datum (deutsch)
 js/lib/parse.js          Zutaten/Artikel/Zeiten/Rezepttext aus Freitext lesen
 js/lib/aisles.js         Supermarkt-Gänge + Stichwort-Zuordnung
 js/lib/shop.js           addToList() (zusammenlegen), recipeItems()
+js/lib/family.js         familyMembers(ctx), saveFamily(ctx, namen) für einstellungen/familie
 js/lib/symbols.js        Rezeptfarben (6) und Illustrationen (8, SVG)
 js/lib/icons.js          Linien-Icons icon(name), PLAY/PAUSE, ribbon()
 js/views/*.js            Ein Modul pro Bildschirm (siehe Abschnitt 2), u. a. wishes.js (Wunschliste)
@@ -82,7 +83,7 @@ icons/                   App-Icons 180/192/512 + maskable
 
 ### Datenfluss
 
-1. `start()` in `app.js` erzeugt den Store (`createStore()`), wartet auf Anmeldung (`onAuth`), abonniert dann `recipes`, `shopping`, `plan`, `wunschliste`.
+1. `start()` in `app.js` erzeugt den Store (`createStore()`), wartet auf Anmeldung (`onAuth`), abonniert dann `recipes`, `shopping`, `plan`, `wunschliste`, `einstellungen`.
 2. Jede Datenänderung (auch von anderen Geräten) → `state.*` aktualisiert → `render()`.
 3. `render()` bestimmt die View aus der Route, ruft beim Wechsel `unmount()`/`mount()`, dann `root.innerHTML = view.render(ctx)` + Tab-Leiste + Timer-Leiste.
 4. **Eingaben bleiben erhalten:** Vor dem Neuzeichnen derselben Route werden Werte aller `input/textarea/select` **mit `id`** sowie Fokus, Cursor und Scrollposition gemerkt und danach wiederhergestellt. → Jedes Eingabefeld braucht eine **stabile `id`**.
@@ -114,7 +115,7 @@ Ereignisse werden **zentral delegiert** über Datenattribute:
 
 | Eigenschaft | Bedeutung |
 |---|---|
-| `ctx.state` | `{ recipes[], shopping[], plan{datum: doc}, wunschliste[], loaded{recipes,shopping,plan,wunschliste}, user, store, denied, ui }` |
+| `ctx.state` | `{ recipes[], shopping[], plan{datum: doc}, wunschliste[], einstellungen{id: doc}, loaded{recipes,shopping,plan,wunschliste,einstellungen}, user, store, denied, ui }` |
 | `ctx.store` | Datenquelle (Abschnitt 4) |
 | `ctx.ui` | Flüchtiger UI-Zustand (Suche, gewählter Tag, Portionen je Rezept, Kochschritt …), geht beim Neuladen verloren |
 | `ctx.route` | `{ name, params[], query{} }` z. B. `#/plan?add=abc` → `{name:'plan', params:[], query:{add:'abc'}}` |
@@ -136,7 +137,7 @@ Live-Anzeigen: Elemente mit `data-tleft="<timerId>"` (Restzeit-Text) und `data-t
 
 ```js
 store.mode                         // 'demo' | 'firebase'
-store.subscribe(coll, rows => {})  // coll: 'recipes' | 'shopping' | 'plan' | 'wunschliste'; liefert Array mit id
+store.subscribe(coll, rows => {})  // coll: 'recipes' | 'shopping' | 'plan' | 'wunschliste' | 'einstellungen'; liefert Array mit id
 store.add(coll, value) → id
 store.set(coll, id, value)
 store.update(coll, id, patch)
@@ -172,9 +173,14 @@ Alles liegt unter `families/{familyId}/…` (`familyId` aus `firebase-config.js`
 
 **`plan/{JJJJ-MM-TT}`** (ein Dokument pro Tag; wird gelöscht, wenn leer)
 ```js
-{ mahlzeiten: [{ slot: 'Frühstück'|'Mittag'|'Abend', titel: string, rezeptId?: string, von?: string, wunschId?: string }] }
+{ mahlzeiten: [{ slot: 'Frühstück'|'Mittag'|'Abend', titel: string, rezeptId?: string, von?: string, wunschId?: string, kocht?: string }] }
 ```
-Einträge ohne `rezeptId` sind Notizen. `wunschId` verweist auf den eingeplanten Wunsch.
+Einträge ohne `rezeptId` sind Notizen. `wunschId` verweist auf den eingeplanten Wunsch. `von` = wer es geplant hat, `kocht` = wer kocht (Name als Text; bleibt stehen, auch wenn der Name aus der Familienliste entfernt wird).
+
+**`einstellungen/familie`** (ein Dokument)
+```js
+{ mitglieder: string[] /* max. 12, je max. 30 Zeichen, keine Dubletten */ }
+```
 
 **`wunschliste/{id}`**
 ```js
@@ -184,7 +190,7 @@ Einträge ohne `rezeptId` sind Notizen. `wunschId` verweist auf den eingeplanten
 **Timer** liegen **nicht** in Firestore, sondern pro Gerät in `localStorage['cr-timers']`.
 
 ### Zugriffsschutz (`firestore.rules`)
-Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Liste steht, und nur für die Sammlungen `recipes`, `shopping`, `plan`, `wunschliste`.
+Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Liste steht, und nur für die Sammlungen `recipes`, `shopping`, `plan`, `wunschliste`, `einstellungen`.
 **Neue Sammlung** ⇒ an allen Stellen anlegen (`app.js` state/loaded/subscribe, `store-local.js` COLLS – alte Demo-Daten werden dort automatisch ergänzt) und in den Regeln ergänzen **und** in der Firebase-Konsole veröffentlichen, sonst „permission-denied". Die echten Familien-E-Mails stehen nur in der Konsole, nie im Repo.
 
 ---
