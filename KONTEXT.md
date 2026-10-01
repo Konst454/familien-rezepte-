@@ -30,7 +30,7 @@ Navigation per Hash-Route. Untere Tab-Leiste: **Rezepte · Plan · Liste** + rot
 
 | Route | Datei | Inhalt |
 |---|---|---|
-| `#/rezepte` (Start) | `js/views/library.js` | Titel „Rezepte", Suche (Titel, Stichworte, Zutaten), Chips: Alle / Favoriten / alle Stichworte; Karte „Heute · Abend" aus dem Wochenplan; Raster der Rezeptkarten (Farbe + Illustration). Leer: „Rezept eintragen" + „Beispiele laden". |
+| `#/rezepte` (Start) | `js/views/library.js` | Oben rechts **Hell/Dunkel-Schalter** (`.mode-switch`, role=switch) und Konto-Knopf; Titel „Rezepte", Suche (Titel, Stichworte, Zutaten), Chips: Alle / Favoriten / alle Stichworte; Karte „Heute · Abend" aus dem Wochenplan; Raster der Rezeptkarten (Farbe + Illustration). Leer: „Rezept eintragen" + „Beispiele laden". |
 | `#/rezept/:id` | `js/views/recipe.js` | Kopfbild (Farbe + Illustration + Sticker), Titel, „Eingetragen von", Stichworte, 3 Kacheln (Vorb., Kochen, Portionen); **Kochen starten**, **Einplanen** (→ `#/plan?add=:id`), **Auf die Liste** (skaliert); Portionen-Stepper (1–40) rechnet alle Mengen um; Zutaten zum Abhaken (nur lokal); Zubereitung mit **Zeit-Chips** („4 Minuten" → startet Timer); Notizen; Löschen mit zweitem Tippen zur Bestätigung. |
 | `#/neu`, `#/bearbeiten/:id` | `js/views/editor.js` | Formular: Titel*, Portionen, Vorb./Kochzeit (Min.), Zutaten (Textfeld, eine pro Zeile „200 g Mehl"), Zubereitung (ein Schritt pro Absatz), Stichworte (Komma), Notizen, Farbe (6), Bild (8 Illustrationen), Vorschau. **„Rezepttext einfügen und erkennen"**: kopierter Text → Titel, Portionen, Zutaten, Schritte. |
 | `#/kochen/:id` | `js/views/cook.js` | Dunkler Vollbild-Kochmodus: Fortschrittsbalken, große Schrittnummer, Schritttext, „In diesem Schritt"-Zutaten (passend skaliert), Timer-Karte je erkannter Zeit (Start/Pause), Zurück/Weiter, **Wischen** links/rechts, Bildschirm bleibt an (Wake Lock). |
@@ -64,7 +64,8 @@ js/store-local.js        Demo-Modus (localStorage, Tabs synchron über 'storage'
 js/firebase-config.js    Firebase-Web-Konfiguration (leer = Demo-Modus) + familyId
 js/examples.js           3 Beispielrezepte
 js/timers.js             Timer-Logik (pro Gerät, localStorage 'cr-timers'), Wecker-Ton
-js/theme.js              Hell/Dunkel: getTheme(), setTheme(mode), applyTheme() (localStorage 'cr-theme')
+js/theme.js              Hell/Dunkel: getTheme(), setTheme(mode), toggleTheme(), effectiveTheme(), applyTheme()
+                         (localStorage 'cr-theme'; sendet Ereignis 'cr-themechange' → app.js zeichnet neu)
 js/lib/format.js         esc(), Mengen formatieren, Zeiten, Datum (deutsch)
 js/lib/parse.js          Zutaten/Artikel/Zeiten/Rezepttext aus Freitext lesen
 js/lib/aisles.js         Supermarkt-Gänge + Stichwort-Zuordnung
@@ -233,7 +234,7 @@ Lesen/Schreiben nur, wenn angemeldet, **E-Mail bestätigt** und E-Mail in der Li
 **Textfarben-Regel:** Text auf `--bg` und `--card` = `var(--ink)`. Text auf Farbflächen (`--accent`, `--done`, `--note`, `--fav`, `--timer`, `--sky`, `--sage`, Rezeptfarben, `--cook-fg`) = `var(--on-color)`. Nie `--ink` auf Farbflächen verwenden: `--ink` wird im Dunkelmodus hell. Weißer Text nur auf `--smart` (`--on-smart`).
 
 ### Dunkelmodus „Night Kitchen"
-- Umschaltung pro Gerät im Konto (Automatisch / Hell / Dunkel), Logik in `js/theme.js`. Ein Frühskript in `index.html` setzt den Modus vor dem ersten Zeichnen (kein Aufblitzen).
+- Umschaltung pro Gerät: **Schalter auf der Startseite** (Hell ↔ Dunkel) und im Konto (Automatisch / Hell / Dunkel). Logik in `js/theme.js`. Ein Frühskript in `index.html` setzt den Modus vor dem ersten Zeichnen (kein Aufblitzen).
 - `css/app.css` überschreibt im Dunkeln nur diese Tokens: `--bg #111214`, `--card #1D1F24`, `--ink`/`--line #F5F3EE`, `--on-ink #111214`, `--muted #A8A39A`, `--soft #2A2D33`, `--danger #FF8A80`, `--on-danger`, `--plate`, `--scrim`. Farbflächen und Kochmodus bleiben gleich.
 - Die Dunkel-Tokens stehen **zweimal** (System-Media-Query und `[data-theme="dark"]`). **Beide Blöcke müssen gleich bleiben.**
 - Neue Farben deshalb immer als Token anlegen und in beiden Dunkel-Blöcken prüfen. Keine festen Hex-Farben in Views (Ausnahme: Illustrationen in `symbols.js`, die stehen immer auf Farbflächen).

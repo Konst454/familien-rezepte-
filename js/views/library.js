@@ -3,6 +3,7 @@ import { esc, isoDate, minutesText } from '../lib/format.js';
 import { icon, ribbon } from '../lib/icons.js';
 import { colorValue, symbolSvg } from '../lib/symbols.js';
 import { EXAMPLES } from '../examples.js';
+import { effectiveTheme, toggleTheme } from '../theme.js';
 
 export const id = 'library';
 
@@ -30,6 +31,14 @@ export function listHtml(ctx) {
     return `<div class="empty"><div class="h3">Nichts gefunden</div><p class="muted small" style="margin:0">Probier ein anderes Wort oder wähle „Alle".</p></div>`;
   }
   return `<div class="grid2">${rows.map(card).join('')}</div>`;
+}
+
+// Hell/Dunkel-Schalter. „Automatisch" gibt es weiter im Konto.
+function themeSwitch() {
+  const dark = effectiveTheme() === 'dark';
+  return `<button type="button" class="mode-switch" role="switch" aria-checked="${dark}" aria-label="Dunkelmodus" data-act="theme">
+    <span class="mode-ic">${icon('sun', 16)}</span><span class="mode-ic">${icon('moon', 16)}</span>
+    <span class="knob">${icon(dark ? 'moon' : 'sun', 18, 2.4)}</span></button>`;
 }
 
 export function render(ctx) {
@@ -66,13 +75,19 @@ export function render(ctx) {
   return `<main class="screen">
     ${ribbon('M180 190 C 230 60, 300 40, 330 110 S 380 200, 430 60', 480, 220, 'top:40px;left:0')}
     <div class="row between"><span class="stk tilt-l">Creative Recipes</span>
-      <a class="icon-btn" href="#/konto" aria-label="Konto und Einstellungen">${icon('user')}</a></div>
+      <span class="row" style="gap:8px">${themeSwitch()}<a class="icon-btn" href="#/konto" aria-label="Konto und Einstellungen">${icon('user')}</a></span></div>
     <h1 class="display">Rezepte</h1>
     ${body}
   </main>`;
 }
 
 export const actions = {
+  theme(ctx, el) {
+    // Knopf erst gleiten lassen, dann umschalten (bei „Bewegung reduzieren" sofort).
+    el.setAttribute('aria-checked', String(el.getAttribute('aria-checked') !== 'true'));
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(toggleTheme, reduce ? 0 : 180);
+  },
   search(ctx, el) {
     ctx.ui.libQuery = el.value;
     const box = document.getElementById('lib-list');

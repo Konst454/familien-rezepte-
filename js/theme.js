@@ -29,12 +29,19 @@ export function applyTheme() {
   else root.dataset.theme = t;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', BAR[effectiveTheme()]);
+  // Ansichten mit Schalter (Startseite, Konto) neu zeichnen lassen, auch bei Wechsel am Handy.
+  window.dispatchEvent(new Event('cr-themechange'));
   if (!media && window.matchMedia) {
     media = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => { if (getTheme() === 'auto') applyTheme(); };
     if (media.addEventListener) media.addEventListener('change', onChange);
     else if (media.addListener) media.addListener(onChange);
   }
+}
+
+// Schalter auf der Startseite: wechselt zwischen Hell und Dunkel (ausgehend von der aktuellen Anzeige).
+export function toggleTheme() {
+  setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark');
 }
 
 export function setTheme(mode) {

@@ -158,6 +158,7 @@ root.addEventListener('input', handler('input'));
 root.addEventListener('change', handler('change'));
 root.addEventListener('submit', handler('submit'));
 
+window.addEventListener('cr-themechange', () => { if (state.store) render(); });
 window.addEventListener('hashchange', () => { state.ui._navCount = (state.ui._navCount || 0) + 1; render(); });
 
 // ---- Meldungen ----

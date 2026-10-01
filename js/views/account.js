@@ -36,7 +36,7 @@ export function render(ctx) {
 }
 
 export const actions = {
-  theme(ctx, el) { setTheme(el.dataset.mode); ctx.rerender(); },
+  theme(ctx, el) { setTheme(el.dataset.mode); },
   async logout(ctx) { await ctx.store.signOut(); ctx.go('#/rezepte'); },
   reset(ctx) {
     if (!ctx.ui.confirmReset) { ctx.ui.confirmReset = true; ctx.toast('Nochmal tippen, um alle Demo-Daten zu löschen'); setTimeout(() => { ctx.ui.confirmReset = false; }, 4000); return; }
