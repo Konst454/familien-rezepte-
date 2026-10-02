@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien offline bereit.
 // Beim Ändern von Dateien VERSION erhöhen, damit alle Geräte die neue Version laden.
-const VERSION = 'v9';
+const VERSION = 'v10';
 const CACHE = 'creative-recipes-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
@@ -13,7 +13,8 @@ const FILES = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: 'reload' umgeht den Browser-Zwischenspeicher (GitHub Pages erlaubt sonst 10 Minuten alte Dateien).
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -21,12 +22,13 @@ self.addEventListener('activate', (e) => {
 });
 
 // Eigene Dateien: erst Netz (damit Updates sofort ankommen), sonst Zwischenspeicher.
+// 'no-cache' fragt immer beim Server nach (kleine Anfrage, wenn sich nichts geändert hat).
 // Firebase und Schriften laufen direkt übers Netz bzw. über den Firebase-eigenen Offline-Speicher.
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
   e.respondWith(
-    fetch(e.request).then((res) => {
+    fetch(e.request, { cache: 'no-cache' }).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
       return res;
     }).catch(() => caches.match(e.request, { ignoreSearch: true }).then((r) => r || caches.match('index.html')))
