@@ -13,3 +13,12 @@ export default {
   // Alle Familienmitglieder teilen sich diese eine Sammlung.
   familyId: 'familie'
 };
+const firebaseConfig = {
+  apiKey: "AIzaSyCoeTp3xuEcoUQ6UBLMgO3O-SY3R0-DUZw",
+  authDomain: "familienrezepte-824af.firebaseapp.com",
+  projectId: "familienrezepte-824af",
+  storageBucket: "familienrezepte-824af.firebasestorage.app",
+  messagingSenderId: "497828693030",
+  appId: "1:497828693030:web:74795d28f80d8815dd92e7",
+  measurementId: "G-W11YEGR3G5"
+};
