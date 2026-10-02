@@ -1,6 +1,6 @@
 // Service Worker: hält die App-Dateien offline bereit.
 // Beim Ändern von Dateien VERSION erhöhen, damit alle Geräte die neue Version laden.
-const VERSION = 'v10';
+const VERSION = 'v11';
 const CACHE = 'creative-recipes-' + VERSION;
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
